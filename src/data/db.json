@@ -1,0 +1,255 @@
+{
+  "categories": [
+    {
+      "id": 1,
+      "name": "Anillos",
+      "slug": "anillos"
+    },
+    {
+      "id": 2,
+      "name": "Collares",
+      "slug": "collares"
+    },
+    {
+      "id": 3,
+      "name": "Pulseras",
+      "slug": "pulseras"
+    },
+    {
+      "id": 4,
+      "name": "Aros",
+      "slug": "aros"
+    },
+    {
+      "id": 5,
+      "name": "Relojes",
+      "slug": "relojes"
+    }
+  ],
+  "products": [
+    {
+      "id": 1,
+      "slug": "anillo-oro-minimal",
+      "name": "Anillo Oro Minimal",
+      "description": "Anillo elegante con acabado brillante y diseno minimalista.",
+      "price": "45999.99",
+      "stock": 4,
+      "imageUrl": "https://images.unsplash.com/photo-1605100804763-247f67b3557e",
+      "galleryImages": [
+        "https://images.unsplash.com/photo-1605100804763-247f67b3557e",
+        "https://images.unsplash.com/photo-1603561596112-db1d8f86fbcf",
+        "https://images.unsplash.com/photo-1515562141207-7a88fb7ce338"
+      ],
+      "category": "anillos",
+      "featured": true
+    },
+    {
+      "id": 2,
+      "slug": "cadena-plata-clasica",
+      "name": "Cadena Plata Clasica",
+      "description": "Cadena de plata 925 con diseno clasico y resistente.",
+      "price": "38999.00",
+      "stock": 6,
+      "imageUrl": "https://images.unsplash.com/photo-1617038260897-41a1f14a8ca0",
+      "galleryImages": [
+        "https://images.unsplash.com/photo-1617038260897-41a1f14a8ca0"
+      ],
+      "category": "aros",
+      "featured": true
+    },
+    {
+      "id": 3,
+      "slug": "pulsera-luxury-gold",
+      "name": "Pulsera Luxury Gold",
+      "description": "Pulsera sofisticada ideal para ocasiones especiales.",
+      "price": "52999.50",
+      "stock": 4,
+      "imageUrl": "https://images.unsplash.com/photo-1515562141207-7a88fb7ce338",
+      "galleryImages": [
+        "https://images.unsplash.com/photo-1515562141207-7a88fb7ce338"
+      ],
+      "category": "pulseras",
+      "featured": true
+    },
+    {
+      "id": 4,
+      "slug": "aros-perla-elegance",
+      "name": "Aros Perla Elegance",
+      "description": "Aros delicados con perlas.",
+      "price": "27999.99",
+      "stock": 9,
+      "imageUrl": "https://images.unsplash.com/photo-1535632066927-ab7c9ab60908",
+      "galleryImages": [
+        "https://images.unsplash.com/photo-1535632066927-ab7c9ab60908"
+      ],
+      "category": "aros",
+      "featured": true
+    },
+    {
+      "id": 5,
+      "slug": "reloj-premium-silver",
+      "name": "Reloj Premium Silver",
+      "description": "Reloj de lujo plateado.",
+      "price": "124999.00",
+      "stock": 2,
+      "imageUrl": "https://images.unsplash.com/photo-1523170335258-f5ed11844a49",
+      "galleryImages": [
+        "https://images.unsplash.com/photo-1523170335258-f5ed11844a49"
+      ],
+      "category": "relojes",
+      "featured": false
+    },
+    {
+      "id": 6,
+      "slug": "collar-corazon-rose",
+      "name": "Collar Corazon Rose",
+      "description": "Collar romantico rose gold.",
+      "price": "31999.90",
+      "stock": 0,
+      "imageUrl": "https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f",
+      "galleryImages": [
+        "https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f"
+      ],
+      "category": "collares",
+      "featured": false
+    }
+  ],
+  "orders": [
+    {
+      "id": 1,
+      "orderNumber": "JOL-00001",
+      "customerName": "Cliente Demo",
+      "customerEmail": "demo@jolit.com",
+      "customerPhone": "1131134189",
+      "shippingAddress": "",
+      "shippingCity": "",
+      "shippingPostalCode": "",
+      "shippingCountry": "Argentina",
+      "status": "shipped",
+      "totalAmount": "38999.00",
+      "items": [
+        {
+          "productId": 2,
+          "slug": "cadena-plata-clasica",
+          "name": "Cadena Plata Clasica",
+          "price": "38999.00",
+          "quantity": 1,
+          "subtotal": "38999.00"
+        }
+      ],
+      "createdAt": "2026-05-26T18:26:06.616Z",
+      "updatedAt": "2026-05-26T18:41:58.277Z"
+    },
+    {
+      "id": 2,
+      "orderNumber": "JOL-00002",
+      "customerName": "naim",
+      "customerEmail": "naimmelita@gmail.com",
+      "customerPhone": "1131134189",
+      "shippingAddress": "adad",
+      "shippingCity": "dada",
+      "shippingPostalCode": "",
+      "shippingCountry": "Argentina",
+      "status": "pending",
+      "totalAmount": "45999.99",
+      "items": [
+        {
+          "productId": 1,
+          "slug": "anillo-oro-minimal",
+          "name": "Anillo Oro Minimal",
+          "price": "45999.99",
+          "quantity": 1,
+          "subtotal": "45999.99"
+        }
+      ],
+      "createdAt": "2026-05-26T18:27:50.018Z",
+      "updatedAt": "2026-05-26T18:27:50.018Z"
+    },
+    {
+      "id": 3,
+      "orderNumber": "JOL-00003",
+      "customerName": "naim",
+      "customerEmail": "naimmelita@gmail.com",
+      "customerPhone": "1131134189",
+      "shippingAddress": "141 2117",
+      "shippingCity": "berazategui",
+      "shippingPostalCode": "",
+      "shippingCountry": "Argentina",
+      "status": "paid",
+      "totalAmount": "45999.99",
+      "items": [
+        {
+          "productId": 1,
+          "slug": "anillo-oro-minimal",
+          "name": "Anillo Oro Minimal",
+          "price": "45999.99",
+          "quantity": 1,
+          "subtotal": "45999.99"
+        }
+      ],
+      "createdAt": "2026-05-26T21:53:23.521Z",
+      "updatedAt": "2026-05-27T00:13:06.865Z"
+    },
+    {
+      "id": 4,
+      "orderNumber": "JOL-00004",
+      "customerName": "naim ",
+      "customerEmail": "naimmelita@gmail.com",
+      "customerPhone": "1131134189",
+      "shippingAddress": "jose pereyra lucena 2143",
+      "shippingCity": "lomas de zamora",
+      "shippingPostalCode": "1832",
+      "shippingCountry": "Argentina",
+      "shippingProvider": "Correo Argentino",
+      "shippingService": "PAQ.AR",
+      "shippingCost": "3500.00",
+      "shippingEta": "2 a 4 dias habiles",
+      "shippingTrackingNumber": "",
+      "shippingTrackingUrl": "",
+      "status": "pending",
+      "subtotalAmount": "98999.49",
+      "totalAmount": "102499.49",
+      "items": [
+        {
+          "productId": 3,
+          "slug": "pulsera-luxury-gold",
+          "name": "Pulsera Luxury Gold",
+          "price": "52999.50",
+          "quantity": 1,
+          "subtotal": "52999.50"
+        },
+        {
+          "productId": 1,
+          "slug": "anillo-oro-minimal",
+          "name": "Anillo Oro Minimal",
+          "price": "45999.99",
+          "quantity": 1,
+          "subtotal": "45999.99"
+        }
+      ],
+      "createdAt": "2026-05-27T20:47:34.313Z",
+      "updatedAt": "2026-05-27T20:47:34.313Z"
+    }
+  ],
+  "settings": {
+    "storeName": "Jolit",
+    "whatsappNumber": "5491131134189",
+    "shipping": {
+      "provider": "Correo Argentino",
+      "service": "PAQ.AR",
+      "freeShippingMinimum": 100000,
+      "cabaRate": 2500,
+      "gbaRate": 3500,
+      "interiorRate": 5500
+    },
+    "promoBanner": {
+      "enabled": false,
+      "title": "",
+      "message": "",
+      "ctaLabel": "",
+      "ctaUrl": "",
+      "startsAt": "",
+      "endsAt": ""
+    }
+  }
+}
