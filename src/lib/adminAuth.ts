@@ -1,7 +1,7 @@
 import type { NextFunction, Request, Response } from "express";
 import { randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 import { badRequest, HttpError } from "./http.js";
-import { readDb, writeDb } from "./store.js";
+import { prisma } from "./prisma.js";
 
 const DEFAULT_ADMIN_EMAIL = "admin@jolit.local";
 const DEFAULT_ADMIN_PASSWORD = "admin123";
@@ -10,8 +10,31 @@ function isProduction() {
   return process.env.NODE_ENV === "production";
 }
 
-export function getAdminEmail() {
-  const admin = readDb().admin;
+export async function getAdminAccount() {
+  const admin = await prisma.adminAccount.findFirst({
+    orderBy: { id: "asc" },
+  });
+
+  if (admin) return admin;
+
+  if (isProduction()) {
+    throw new Error("Admin account must be configured in production");
+  }
+
+  const password = hashPassword(getEnvAdminPassword());
+
+  return prisma.adminAccount.create({
+    data: {
+      name: "Admin",
+      email: process.env.ADMIN_EMAIL || DEFAULT_ADMIN_EMAIL,
+      passwordHash: password.hash,
+      passwordSalt: password.salt,
+    },
+  });
+}
+
+export async function getAdminEmail() {
+  const admin = await getAdminAccount();
   if (admin?.email) return admin.email;
 
   const email = process.env.ADMIN_EMAIL;
@@ -23,7 +46,7 @@ export function getAdminEmail() {
   return email || DEFAULT_ADMIN_EMAIL;
 }
 
-function getAdminPassword() {
+function getEnvAdminPassword() {
   const password = process.env.ADMIN_PASSWORD;
 
   if (isProduction()) {
@@ -33,15 +56,15 @@ function getAdminPassword() {
   return password || DEFAULT_ADMIN_PASSWORD;
 }
 
-export function getAdminToken() {
-  return Buffer.from(`${getAdminEmail()}:${getAdminTokenSecret()}`).toString(
+export async function getAdminToken() {
+  return Buffer.from(`${await getAdminEmail()}:${await getAdminTokenSecret()}`).toString(
     "base64"
   );
 }
 
-function getAdminTokenSecret() {
-  const admin = readDb().admin;
-  return admin?.passwordHash || getAdminPassword();
+async function getAdminTokenSecret() {
+  const admin = await getAdminAccount();
+  return admin.passwordHash;
 }
 
 function hashPassword(password: string, salt = randomBytes(16).toString("hex")) {
@@ -60,68 +83,76 @@ function verifyPassword(password: string, hash: string, salt: string) {
   );
 }
 
-function verifyAdminPassword(password: string) {
-  const admin = readDb().admin;
+async function verifyAdminPassword(password: string) {
+  const admin = await getAdminAccount();
 
   if (admin?.passwordHash && admin.passwordSalt) {
     return verifyPassword(password, admin.passwordHash, admin.passwordSalt);
   }
 
-  return password === getAdminPassword();
+  return password === getEnvAdminPassword();
 }
 
-export function loginAdmin(email: string, password: string) {
+export async function loginAdmin(email: string, password: string) {
   if (!email || !password) {
     throw badRequest("Email and password are required");
   }
 
-  if (email !== getAdminEmail() || !verifyAdminPassword(password)) {
+  const admin = await getAdminAccount();
+
+  if (email !== admin.email || !(await verifyAdminPassword(password))) {
     throw new HttpError(401, "Invalid admin credentials");
   }
 
   return {
-    token: getAdminToken(),
+    token: await getAdminToken(),
     user: {
-      name: "Admin",
-      email: getAdminEmail(),
+      name: admin.name,
+      email: admin.email,
     },
   };
 }
 
-export function changeAdminPassword(currentPassword: string, newPassword: string) {
-  if (!verifyAdminPassword(currentPassword)) {
+export async function changeAdminPassword(
+  currentPassword: string,
+  newPassword: string
+) {
+  if (!(await verifyAdminPassword(currentPassword))) {
     throw new HttpError(401, "Invalid current password");
   }
 
-  const db = readDb();
   const nextPassword = hashPassword(newPassword);
+  const admin = await getAdminAccount();
 
-  db.admin = {
-    name: db.admin?.name ?? "Admin",
-    email: db.admin?.email ?? getAdminEmail(),
-    passwordHash: nextPassword.hash,
-    passwordSalt: nextPassword.salt,
-  };
-
-  writeDb(db);
+  const updatedAdmin = await prisma.adminAccount.update({
+    where: { id: admin.id },
+    data: {
+      passwordHash: nextPassword.hash,
+      passwordSalt: nextPassword.salt,
+    },
+  });
 
   return {
-    token: getAdminToken(),
+    token: await getAdminToken(),
     user: {
-      name: db.admin.name,
-      email: db.admin.email,
+      name: updatedAdmin.name,
+      email: updatedAdmin.email,
     },
   };
 }
 
-export function requireAdmin(req: Request, _res: Response, next: NextFunction) {
-  const header = req.header("authorization");
-  const token = header?.startsWith("Bearer ") ? header.slice(7) : "";
+export async function requireAdmin(req: Request, _res: Response, next: NextFunction) {
+  try {
+    const header = req.header("authorization");
+    const token = header?.startsWith("Bearer ") ? header.slice(7) : "";
 
-  if (token !== getAdminToken()) {
-    next(new HttpError(401, "Admin authentication required"));
-    return;
+    if (token !== (await getAdminToken())) {
+      next(new HttpError(401, "Admin authentication required"));
+      return;
+    }
+
+    next();
+  } catch (error) {
+    next(error);
   }
-
-  next();
 }

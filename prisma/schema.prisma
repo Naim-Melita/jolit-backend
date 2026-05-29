@@ -1,0 +1,237 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum OrderStatus {
+  pending
+  paid
+  processing
+  shipped
+  delivered
+  cancelled
+}
+
+enum OrderEventType {
+  created
+  status_changed
+  shipping_updated
+}
+
+model Category {
+  id        Int       @id @default(autoincrement())
+  name      String
+  slug      String    @unique
+  products  Product[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@map("categories")
+}
+
+model Product {
+  id          Int            @id @default(autoincrement())
+  slug        String         @unique
+  name        String
+  description String
+  featured    Boolean        @default(false)
+  categoryId  Int
+  category    Category       @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  images      ProductImage[]
+  prices      ProductPrice[]
+  inventory   Inventory?
+  orderItems  OrderItem[]
+  cartItems   CartItem[]
+  favorites   Favorite[]
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@index([categoryId])
+  @@map("products")
+}
+
+model ProductImage {
+  id                 Int      @id @default(autoincrement())
+  productId          Int
+  product            Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  url                String
+  alt                String   @default("")
+  position           Int      @default(0)
+  isPrimary          Boolean  @default(false)
+  cloudinaryPublicId String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([productId])
+  @@map("product_images")
+}
+
+model ProductPrice {
+  id        Int      @id @default(autoincrement())
+  productId Int
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  amount    Decimal  @db.Decimal(12, 2)
+  currency  String   @default("ARS")
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([productId, active])
+  @@map("product_prices")
+}
+
+model Inventory {
+  id        Int      @id @default(autoincrement())
+  productId Int      @unique
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  quantity  Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("inventory")
+}
+
+model Customer {
+  id          Int        @id @default(autoincrement())
+  clerkUserId String?    @unique
+  name        String
+  email       String     @unique
+  phone       String?
+  orders      Order[]
+  carts       Cart[]
+  favorites   Favorite[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@map("customers")
+}
+
+model Cart {
+  id         Int        @id @default(autoincrement())
+  customerId Int?
+  customer   Customer?  @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  sessionId  String?
+  items      CartItem[]
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  @@index([customerId])
+  @@index([sessionId])
+  @@map("carts")
+}
+
+model CartItem {
+  id        Int      @id @default(autoincrement())
+  cartId    Int
+  cart      Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  productId Int
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Restrict)
+  quantity  Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([cartId, productId])
+  @@index([productId])
+  @@map("cart_items")
+}
+
+model Order {
+  id                     Int          @id @default(autoincrement())
+  orderNumber            String       @unique
+  customerId             Int?
+  customer               Customer?    @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  customerName           String
+  customerEmail          String
+  customerPhone          String
+  shippingAddress        String       @default("")
+  shippingCity           String       @default("")
+  shippingPostalCode     String       @default("")
+  shippingCountry        String       @default("Argentina")
+  shippingProvider       String       @default("Correo Argentino")
+  shippingService        String       @default("PAQ.AR")
+  shippingCost           Decimal      @default(0) @db.Decimal(12, 2)
+  shippingEta            String       @default("")
+  shippingTrackingNumber String       @default("")
+  shippingTrackingUrl    String       @default("")
+  status                 OrderStatus  @default(pending)
+  subtotalAmount         Decimal      @db.Decimal(12, 2)
+  totalAmount            Decimal      @db.Decimal(12, 2)
+  items                  OrderItem[]
+  events                 OrderEvent[]
+  createdAt              DateTime     @default(now())
+  updatedAt              DateTime     @updatedAt
+
+  @@index([customerId])
+  @@index([customerEmail])
+  @@map("orders")
+}
+
+model OrderItem {
+  id        Int      @id @default(autoincrement())
+  orderId   Int
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId Int?
+  product   Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  slug      String
+  name      String
+  price     Decimal  @db.Decimal(12, 2)
+  quantity  Int
+  subtotal  Decimal  @db.Decimal(12, 2)
+
+  @@index([orderId])
+  @@index([productId])
+  @@map("order_items")
+}
+
+model OrderEvent {
+  id        Int            @id @default(autoincrement())
+  orderId   Int
+  order     Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  type      OrderEventType
+  message   String
+  createdAt DateTime       @default(now())
+
+  @@index([orderId])
+  @@map("order_events")
+}
+
+model StoreSettings {
+  id             Int      @id @default(1)
+  storeName      String   @default("Jolit")
+  whatsappNumber String   @default("5491131134189")
+  shipping       Json
+  promoBanner    Json
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@map("store_settings")
+}
+
+model Favorite {
+  id         Int      @id @default(autoincrement())
+  customerId Int
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  productId  Int
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+
+  @@unique([customerId, productId])
+  @@index([productId])
+  @@map("favorites")
+}
+
+model AdminAccount {
+  id           Int      @id @default(autoincrement())
+  name         String   @default("Admin")
+  email        String   @unique
+  passwordHash String
+  passwordSalt String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("admin_accounts")
+}

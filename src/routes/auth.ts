@@ -5,27 +5,28 @@ import {
   loginAdmin,
   requireAdmin,
 } from "../lib/adminAuth.js";
+import { asyncHandler } from "../lib/http.js";
 import { adminPasswordSchema } from "../schemas.js";
 
 export const authRouter = Router();
 
-authRouter.post("/login", (req, res) => {
+authRouter.post("/login", asyncHandler(async (req, res) => {
   const { email, password } = req.body as {
     email?: string;
     password?: string;
   };
 
-  res.json(loginAdmin(email ?? "", password ?? ""));
-});
+  res.json(await loginAdmin(email ?? "", password ?? ""));
+}));
 
-authRouter.get("/me", requireAdmin, (_req, res) => {
+authRouter.get("/me", requireAdmin, asyncHandler(async (_req, res) => {
   res.json({
     name: "Admin",
-    email: getAdminEmail(),
+    email: await getAdminEmail(),
   });
-});
+}));
 
-authRouter.patch("/password", requireAdmin, (req, res) => {
+authRouter.patch("/password", requireAdmin, asyncHandler(async (req, res) => {
   const input = adminPasswordSchema.parse(req.body);
-  res.json(changeAdminPassword(input.currentPassword, input.newPassword));
-});
+  res.json(await changeAdminPassword(input.currentPassword, input.newPassword));
+}));

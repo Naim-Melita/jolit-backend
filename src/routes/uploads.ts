@@ -1,28 +1,10 @@
-import fs from "node:fs";
-import path from "node:path";
 import multer from "multer";
 import { Router } from "express";
-import { badRequest } from "../lib/http.js";
-
-const uploadDir = path.resolve(process.cwd(), "uploads");
-
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
-
-const storage = multer.diskStorage({
-  destination: (_req, _file, cb) => {
-    cb(null, uploadDir);
-  },
-  filename: (_req, file, cb) => {
-    const ext = path.extname(file.originalname).toLowerCase();
-    const safeName = `${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`;
-    cb(null, safeName);
-  },
-});
+import { uploadImage } from "../controllers/uploads.controller.js";
+import { badRequest, asyncHandler } from "../lib/http.js";
 
 const upload = multer({
-  storage,
+  storage: multer.memoryStorage(),
   limits: {
     fileSize: 5 * 1024 * 1024,
   },
@@ -38,13 +20,4 @@ const upload = multer({
 
 export const uploadsRouter = Router();
 
-uploadsRouter.post("/", upload.single("image"), (req, res) => {
-  if (!req.file) {
-    throw badRequest("Image file is required");
-  }
-
-  const baseUrl = `${req.protocol}://${req.get("host")}`;
-  res.status(201).json({
-    imageUrl: `${baseUrl}/uploads/${req.file.filename}`,
-  });
-});
+uploadsRouter.post("/", upload.single("image"), asyncHandler(uploadImage));
