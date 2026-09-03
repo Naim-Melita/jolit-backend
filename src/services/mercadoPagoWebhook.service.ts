@@ -57,7 +57,13 @@ export async function handleMercadoPagoWebhook(
 
   const order = await prisma.order.findUnique({
     where: { id: payment.orderId },
-    select: { id: true, status: true, paymentId: true, orderNumber: true },
+    select: {
+      id: true,
+      status: true,
+      paymentId: true,
+      orderNumber: true,
+      totalAmount: true,
+    },
   });
 
   if (!order) {
@@ -87,6 +93,19 @@ export async function handleMercadoPagoWebhook(
       `Pago ${payment.paymentId} del pedido ${order.orderNumber}: ${payment.status}`
     );
     return { received: true, status: payment.status };
+  }
+
+  // Verificamos el monto antes de dar el pedido por pagado. La preferencia
+  // se arma en el servidor, asi que no deberia diferir nunca; si difiere,
+  // algo esta mal y preferimos que quede pendiente y se mire a mano.
+  const esperado = Number(order.totalAmount.toString());
+
+  if (Math.abs(payment.paidAmount - esperado) > 0.01) {
+    console.error(
+      `Pedido ${order.orderNumber}: se pago ${payment.paidAmount} y se esperaba ${esperado}. No se marca como pagado.`
+    );
+
+    return { received: true, status: payment.status, amountMismatch: true };
   }
 
   if (order.status !== "paid") {

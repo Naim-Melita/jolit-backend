@@ -51,6 +51,9 @@ export type Order = {
   shippingTrackingNumber: string;
   shippingTrackingUrl: string;
   status: OrderStatus;
+  paymentId: string;
+  paymentStatus: string;
+  paidAt: string | null;
   subtotalAmount: string;
   totalAmount: string;
   items: OrderItem[];

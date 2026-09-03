@@ -18,6 +18,9 @@ type OrderWithRelations = {
   shippingTrackingNumber: string;
   shippingTrackingUrl: string;
   status: OrderStatus;
+  paymentId: string;
+  paymentStatus: string;
+  paidAt: Date | null;
   subtotalAmount: { toString(): string };
   totalAmount: { toString(): string };
   items: Array<{
@@ -56,6 +59,9 @@ export function toOrderResponse(order: OrderWithRelations): Order {
     shippingTrackingNumber: order.shippingTrackingNumber,
     shippingTrackingUrl: order.shippingTrackingUrl,
     status: order.status,
+    paymentId: order.paymentId,
+    paymentStatus: order.paymentStatus,
+    paidAt: order.paidAt ? order.paidAt.toISOString() : null,
     subtotalAmount: toMoney(order.subtotalAmount),
     totalAmount: toMoney(order.totalAmount),
     items: order.items.map((item) => ({

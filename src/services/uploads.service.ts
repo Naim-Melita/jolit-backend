@@ -56,12 +56,19 @@ export async function uploadImageToCloudinary({
   configureCloudinary();
 
   const folder = process.env.CLOUDINARY_FOLDER || "jolit/products";
-  const result = await uploadBuffer(buffer, {
-    folder,
-    public_id: buildPublicId(originalName),
-    resource_type: "image",
-    overwrite: false,
-  });
+  let result;
+
+  try {
+    result = await uploadBuffer(buffer, {
+      folder,
+      public_id: buildPublicId(originalName),
+      resource_type: "image",
+      overwrite: false,
+    });
+  } catch (error) {
+    console.error("Cloudinary rechazo la imagen", error);
+    throw new HttpError(502, "Image upload failed");
+  }
 
   return {
     imageUrl: result.secure_url,

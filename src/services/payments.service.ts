@@ -55,6 +55,11 @@ export async function createPaymentPreference(orderId: number) {
   const frontendUrl = getFrontendUrl();
   const notificationUrl = getNotificationUrl();
 
+  // Mercado Pago rechaza auto_return si la URL de vuelta no es publica.
+  // En local la clienta vuelve con el boton de la pantalla de MP.
+  const esLocal =
+    frontendUrl.includes("localhost") || frontendUrl.includes("127.0.0.1");
+
   const preference = await getPreferenceClient().create({
     body: {
       items: order.items.map((item) => ({
@@ -79,7 +84,7 @@ export async function createPaymentPreference(orderId: number) {
         pending: `${frontendUrl}/order-success/${order.id}`,
         failure: `${frontendUrl}/checkout?pago=rechazado`,
       },
-      auto_return: "approved",
+      ...(esLocal ? {} : { auto_return: "approved" as const }),
       payment_methods: {
         installments,
         excluded_payment_types: [],
@@ -111,6 +116,8 @@ export type MercadoPagoPaymentSnapshot = {
   status: string;
   orderId: number | null;
   approved: boolean;
+  /** Lo que realmente pago la clienta, envio incluido. */
+  paidAmount: number;
 };
 
 /** Consulta el pago en Mercado Pago. Nunca confiamos en el cuerpo del webhook. */
@@ -121,10 +128,16 @@ export async function fetchPaymentSnapshot(
   const externalReference = payment.external_reference;
   const orderId = externalReference ? Number(externalReference) : null;
 
+  // MP separa el envio: transaction_amount son solo los productos.
+  const paidAmount =
+    payment.transaction_details?.total_paid_amount ??
+    (payment.transaction_amount ?? 0) + (payment.shipping_amount ?? 0);
+
   return {
     paymentId: String(payment.id ?? paymentId),
     status: payment.status ?? "unknown",
     orderId: Number.isFinite(orderId) && orderId ? orderId : null,
     approved: payment.status === "approved",
+    paidAmount: Number(paidAmount),
   };
 }
