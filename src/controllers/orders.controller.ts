@@ -1,5 +1,7 @@
 import type { Request, Response } from "express";
 import { getClerkUserId } from "../middlewares/clerk.js";
+import { notifyNewOrder } from "../services/notifications.service.js";
+import { getStoreSettings } from "../services/settings.service.js";
 import {
   orderLookupSchema,
   orderSchema,
@@ -35,6 +37,14 @@ export async function postOrder(req: Request, res: Response) {
   });
 
   res.status(201).json(order);
+
+  // Los mails salen despues de responder: el pedido ya esta guardado y
+  // una notificacion que falla no puede voltear la venta.
+  void getStoreSettings()
+    .then((settings) => notifyNewOrder(order, settings.storeName))
+    .catch((error) =>
+      console.error(`No se pudo notificar el pedido ${order.orderNumber}`, error)
+    );
 }
 
 export async function patchOrderStatus(req: Request, res: Response) {

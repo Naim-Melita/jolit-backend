@@ -1,5 +1,5 @@
 import type { NextFunction, Request, Response } from "express";
-import { getAdminToken } from "../lib/adminAuth.js";
+import { isAdminTokenRequest } from "../lib/adminAuth.js";
 import { HttpError } from "../lib/http.js";
 import { isClerkAdminRequest } from "./clerk.js";
 
@@ -9,10 +9,7 @@ export async function requireAdminAccess(
   next: NextFunction
 ) {
   try {
-    const header = req.header("authorization");
-    const token = header?.startsWith("Bearer ") ? header.slice(7) : "";
-
-    if (token && token === (await getAdminToken())) {
+    if (isAdminTokenRequest(req)) {
       next();
       return;
     }
