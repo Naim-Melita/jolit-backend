@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "start": "node dist/server.js",
-    "build": "tsc",
+    "build": "tsc -p tsconfig.build.json",
     "check": "tsc --noEmit",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
@@ -14,8 +14,9 @@
     "prisma:seed": "prisma db seed",
     "prisma:studio": "prisma studio",
     "prebuild": "prisma generate",
-    "verify": "npm run check && npm run build",
-    "admin:set": "tsx src/scripts/set-admin.ts"
+    "verify": "npm run check && npm run test && npm run build",
+    "admin:set": "tsx src/scripts/set-admin.ts",
+    "test": "node --import tsx --test src/tests/*.test.ts"
   },
   "dependencies": {
     "@clerk/express": "^2.1.22",

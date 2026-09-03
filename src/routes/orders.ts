@@ -3,6 +3,7 @@ import rateLimit from "express-rate-limit";
 import {
   getOrder,
   getOrders,
+  getOrdersStats,
   patchOrderShipping,
   patchOrderStatus,
   postOrder,
@@ -30,6 +31,8 @@ const lookupRateLimit = rateLimit({
 });
 
 ordersRouter.get("/", requireAdminAccess, asyncHandler(getOrders));
+// Antes de "/:id" para que "stats" no se lea como un id.
+ordersRouter.get("/stats", requireAdminAccess, asyncHandler(getOrdersStats));
 ordersRouter.post("/lookup", lookupRateLimit, asyncHandler(postOrderLookup));
 ordersRouter.get("/:id", requireAdminAccess, asyncHandler(getOrder));
 ordersRouter.post("/", createOrderRateLimit, asyncHandler(postOrder));

@@ -31,13 +31,75 @@ const orderInclude = {
   },
 };
 
-export async function listOrders(): Promise<Order[]> {
+const DEFAULT_ORDER_PAGE_SIZE = 50;
+const MAX_ORDER_PAGE_SIZE = 200;
+
+// El listado no incluye eventos: crecen con cada cambio de estado y solo
+// se miran al abrir el detalle, que se pide aparte.
+const orderListInclude = {
+  items: {
+    orderBy: { id: "asc" as const },
+  },
+};
+
+export async function listOrders(options: { limit?: number; cursor?: number } = {}) {
+  const limit = Math.min(
+    Math.max(options.limit ?? DEFAULT_ORDER_PAGE_SIZE, 1),
+    MAX_ORDER_PAGE_SIZE
+  );
+
   const orders = await prisma.order.findMany({
-    include: orderInclude,
-    orderBy: { createdAt: "desc" },
+    include: orderListInclude,
+    orderBy: { id: "desc" },
+    take: limit + 1,
+    ...(options.cursor
+      ? { cursor: { id: options.cursor }, skip: 1 }
+      : {}),
   });
 
-  return orders.map(toOrderResponse);
+  const hasMore = orders.length > limit;
+  const page = hasMore ? orders.slice(0, limit) : orders;
+
+  return {
+    items: page.map((order) => toOrderResponse({ ...order, events: [] })),
+    nextCursor: hasMore ? page[page.length - 1].id : null,
+  };
+}
+
+/**
+ * Los totales del panel salen de la base, no de sumar el listado: asi
+ * siguen siendo correctos aunque el listado venga paginado.
+ */
+export async function getOrderStats() {
+  const [aggregate, byStatus] = await Promise.all([
+    prisma.order.aggregate({
+      _count: { _all: true },
+      _sum: { totalAmount: true },
+    }),
+    prisma.order.groupBy({
+      by: ["status"],
+      _count: { _all: true },
+    }),
+  ]);
+
+  const statusCounts: Record<string, number> = {
+    pending: 0,
+    paid: 0,
+    processing: 0,
+    shipped: 0,
+    delivered: 0,
+    cancelled: 0,
+  };
+
+  for (const row of byStatus) {
+    statusCounts[row.status] = row._count._all;
+  }
+
+  return {
+    totalOrders: aggregate._count._all,
+    totalRevenue: Number(aggregate._sum.totalAmount?.toString() ?? 0),
+    statusCounts,
+  };
 }
 
 export async function getOrderById(id: number): Promise<Order> {
@@ -301,12 +363,13 @@ function normalizeOrderNumber(value: string) {
 }
 
 async function buildNextOrderNumber(tx: PrismaTransaction) {
-  const result = await tx.order.aggregate({
-    _max: { id: true },
-  });
-  const nextId = (result._max.id ?? 0) + 1;
+  // Secuencia de Postgres: entrega numeros unicos aunque entren dos pedidos
+  // a la vez. Puede dejar huecos si una transaccion se cae, y esta bien.
+  const rows = await tx.$queryRaw<Array<{ value: bigint }>>`
+    SELECT nextval('order_number_seq') AS value
+  `;
 
-  return `JOL-${String(nextId).padStart(5, "0")}`;
+  return `JOL-${String(rows[0].value).padStart(5, "0")}`;
 }
 
 async function upsertCustomerForOrder(

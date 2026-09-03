@@ -11,14 +11,27 @@ import {
 import {
   createOrder,
   getOrderById,
+  getOrderStats,
   listOrders,
   lookupOrder,
   updateOrderShipping,
   updateOrderStatus,
 } from "../services/orders.service.js";
 
-export async function getOrders(_req: Request, res: Response) {
-  res.json(await listOrders());
+export async function getOrders(req: Request, res: Response) {
+  const limit = Number(req.query.limit);
+  const cursor = Number(req.query.cursor);
+
+  res.json(
+    await listOrders({
+      limit: Number.isFinite(limit) && limit > 0 ? limit : undefined,
+      cursor: Number.isFinite(cursor) && cursor > 0 ? cursor : undefined,
+    })
+  );
+}
+
+export async function getOrdersStats(_req: Request, res: Response) {
+  res.json(await getOrderStats());
 }
 
 export async function postOrderLookup(req: Request, res: Response) {
