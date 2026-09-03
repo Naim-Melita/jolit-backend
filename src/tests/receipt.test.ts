@@ -13,6 +13,9 @@ const settings = {
     email: "hola@jolit.com",
     dataFiscalUrl: "https://arca.gob.ar/f960/123",
   },
+  payments: {
+    installmentsMinimum: 45000,
+  },
   shipping: {
     provider: "Correo Argentino",
     service: "PAQ.AR",

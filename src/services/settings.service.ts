@@ -15,6 +15,9 @@ const DEFAULT_SETTINGS: StoreSettings = {
     email: "",
     dataFiscalUrl: "",
   },
+  payments: {
+    installmentsMinimum: 45000,
+  },
   shipping: {
     provider: "Correo Argentino",
     service: "PAQ.AR",
@@ -44,6 +47,7 @@ export async function getStoreSettings(): Promise<StoreSettings> {
       shipping: DEFAULT_SETTINGS.shipping,
       promoBanner: DEFAULT_SETTINGS.promoBanner,
       seller: DEFAULT_SETTINGS.seller,
+      payments: DEFAULT_SETTINGS.payments,
     },
     update: {},
   });
@@ -74,6 +78,10 @@ export async function updateStoreSettings(
         ...DEFAULT_SETTINGS.seller,
         ...input.seller,
       },
+      payments: {
+        ...DEFAULT_SETTINGS.payments,
+        ...input.payments,
+      },
     },
     update: {
       storeName: input.storeName,
@@ -90,6 +98,10 @@ export async function updateStoreSettings(
         ...current.seller,
         ...input.seller,
       },
+      payments: {
+        ...current.payments,
+        ...input.payments,
+      },
     },
   });
 
@@ -102,6 +114,7 @@ function normalizeSettings(settings: {
   shipping: unknown;
   promoBanner: unknown;
   seller?: unknown;
+  payments?: unknown;
 }): StoreSettings {
   return {
     storeName: settings.storeName,
@@ -117,6 +130,10 @@ function normalizeSettings(settings: {
     seller: {
       ...DEFAULT_SETTINGS.seller,
       ...(isObject(settings.seller) ? settings.seller : {}),
+    },
+    payments: {
+      ...DEFAULT_SETTINGS.payments,
+      ...(isObject(settings.payments) ? settings.payments : {}),
     },
   };
 }

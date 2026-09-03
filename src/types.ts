@@ -76,6 +76,9 @@ export type StoreSettings = {
     email: string;
     dataFiscalUrl: string;
   };
+  payments: {
+    installmentsMinimum: number;
+  };
   shipping: {
     provider: string;
     service: string;

@@ -13,6 +13,7 @@ import { favoritesRouter } from "./routes/favorites.js";
 import { healthRouter } from "./routes/health.js";
 import { meRouter } from "./routes/me.js";
 import { ordersRouter } from "./routes/orders.js";
+import { paymentsRouter } from "./routes/payments.js";
 import { productsRouter } from "./routes/products.js";
 import { settingsRouter } from "./routes/settings.js";
 import { shippingRouter } from "./routes/shipping.js";
@@ -79,6 +80,7 @@ export function createApp() {
   app.use("/api/settings", settingsRouter);
   app.use("/api/shipping", shippingRouter);
   app.use("/api/orders", ordersRouter);
+  app.use("/api/payments", paymentsRouter);
   app.use("/api/favorites", favoritesRouter);
   app.use("/api/subscribers", subscribersRouter);
   app.use("/api/uploads", uploadRateLimit, requireAdminAccess, uploadsRouter);

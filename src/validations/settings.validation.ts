@@ -37,6 +37,13 @@ export const settingsSchema = z.object({
       email: "",
       dataFiscalUrl: "",
     }),
+  payments: z
+    .object({
+      // Debajo de este total no se ofrecen cuotas.
+      installmentsMinimum: z.coerce.number().min(0).default(45000),
+    })
+    .optional()
+    .default({ installmentsMinimum: 45000 }),
   promoBanner: z.object({
     enabled: z.coerce.boolean(),
     title: z.string().max(80).default(""),

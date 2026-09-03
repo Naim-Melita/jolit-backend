@@ -158,6 +158,10 @@ model Order {
   shippingTrackingNumber String       @default("")
   shippingTrackingUrl    String       @default("")
   status                 OrderStatus  @default(pending)
+  paymentPreferenceId    String       @default("")
+  paymentId              String       @default("")
+  paymentStatus          String       @default("")
+  paidAt                 DateTime?
   subtotalAmount         Decimal      @db.Decimal(12, 2)
   totalAmount            Decimal      @db.Decimal(12, 2)
   items                  OrderItem[]
@@ -167,6 +171,7 @@ model Order {
 
   @@index([customerId])
   @@index([customerEmail])
+  @@index([paymentPreferenceId])
   @@map("orders")
 }
 
@@ -206,6 +211,7 @@ model StoreSettings {
   shipping       Json
   promoBanner    Json
   seller         Json     @default("{}")
+  payments       Json     @default("{}")
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
