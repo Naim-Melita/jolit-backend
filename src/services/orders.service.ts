@@ -1,6 +1,9 @@
+import { quoteCorreoArgentino } from "../lib/correoArgentino.js";
 import { badRequest, notFound } from "../lib/http.js";
 import { toMoney } from "../lib/money.js";
 import { prisma } from "../lib/prisma.js";
+import { priceItems } from "./pricing.service.js";
+import { getStoreSettings } from "./settings.service.js";
 import {
   toOrderResponse,
   toPublicOrderLookupResponse,
@@ -108,50 +111,12 @@ export async function createOrder(
   input: OrderInput,
   options: { clerkUserId?: string | null } = {}
 ): Promise<Order> {
+  const settings = await getStoreSettings();
+
   const order = await prisma.$transaction(async (tx) => {
-    const items = [];
-    let subtotal = 0;
-
-    for (const item of input.items) {
-      const product = await tx.product.findUnique({
-        where: { id: item.productId },
-        include: {
-          inventory: true,
-          prices: {
-            where: { active: true },
-            orderBy: { createdAt: "desc" },
-            take: 1,
-          },
-        },
-      });
-
-      if (!product) {
-        throw badRequest(`Product ${item.productId} does not exist`);
-      }
-
-      const stock = product.inventory?.quantity ?? 0;
-      if (stock < item.quantity) {
-        throw badRequest(`Insufficient stock for ${product.name}`);
-      }
-
-      const activePrice = product.prices[0];
-      if (!activePrice) {
-        throw badRequest(`Product ${product.name} does not have an active price`);
-      }
-
-      const price = Number(activePrice.amount.toString());
-      const itemSubtotal = price * item.quantity;
-      subtotal += itemSubtotal;
-
-      items.push({
-        productId: product.id,
-        slug: product.slug,
-        name: product.name,
-        price: toMoney(price),
-        quantity: item.quantity,
-        subtotal: toMoney(itemSubtotal),
-      });
-    }
+    const { items, subtotal } = await priceItems(tx, input.items, {
+      checkStock: true,
+    });
 
     for (const item of items) {
       await tx.inventory.update({
@@ -164,7 +129,17 @@ export async function createOrder(
       });
     }
 
-    const shippingCost = input.shipping?.cost ?? 0;
+    const quote = quoteCorreoArgentino(
+      {
+        postalCode: input.shippingPostalCode,
+        address: input.shippingAddress,
+        city: input.shippingCity,
+        province: input.shippingCountry,
+        subtotal,
+      },
+      settings.shipping
+    );
+    const shippingCost = quote.cost;
     const totalAmount = subtotal + shippingCost;
     const customer = await upsertCustomerForOrder(tx, input, options.clerkUserId);
     const nextOrderNumber = await buildNextOrderNumber(tx);
@@ -180,10 +155,10 @@ export async function createOrder(
         shippingCity: input.shippingCity,
         shippingPostalCode: input.shippingPostalCode,
         shippingCountry: input.shippingCountry,
-        shippingProvider: input.shipping?.provider ?? "Correo Argentino",
-        shippingService: input.shipping?.service ?? "PAQ.AR",
+        shippingProvider: quote.provider,
+        shippingService: quote.service,
         shippingCost: toMoney(shippingCost),
-        shippingEta: input.shipping?.eta ?? "",
+        shippingEta: quote.eta,
         status: "pending",
         subtotalAmount: toMoney(subtotal),
         totalAmount: toMoney(totalAmount),

@@ -1,5 +1,15 @@
 import { z } from "zod";
 
+export const orderItemsSchema = z
+  .array(
+    z.object({
+      productId: z.coerce.number().int().positive(),
+      quantity: z.coerce.number().int().positive().max(50),
+    })
+  )
+  .min(1)
+  .max(50);
+
 export const orderSchema = z.object({
   customerName: z.string().min(2),
   customerEmail: z.string().email(),
@@ -8,22 +18,9 @@ export const orderSchema = z.object({
   shippingCity: z.string().optional().default(""),
   shippingPostalCode: z.string().optional().default(""),
   shippingCountry: z.string().optional().default("Argentina"),
-  shipping: z
-    .object({
-      provider: z.string().default("Correo Argentino"),
-      service: z.string().default("PAQ.AR"),
-      cost: z.coerce.number().min(0),
-      eta: z.string().default(""),
-    })
-    .optional(),
-  items: z
-    .array(
-      z.object({
-        productId: z.coerce.number().int().positive(),
-        quantity: z.coerce.number().int().positive(),
-      })
-    )
-    .min(1),
+  // El costo de envio NO se acepta del cliente: se cotiza en el servidor
+  // a partir del destino y del subtotal calculado desde la base.
+  items: orderItemsSchema,
 });
 
 export const orderStatusSchema = z.object({

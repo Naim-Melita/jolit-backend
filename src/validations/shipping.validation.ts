@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { orderItemsSchema } from "./orders.validation.js";
 
 export const shippingQuoteSchema = z
   .object({
@@ -6,8 +7,8 @@ export const shippingQuoteSchema = z
     address: z.string().optional().default(""),
     city: z.string().optional().default(""),
     province: z.string().optional().default(""),
-    subtotal: z.coerce.number().min(0).default(0),
-    quantity: z.coerce.number().int().positive().default(1),
+    // El subtotal se calcula en el servidor desde estos items.
+    items: orderItemsSchema,
   })
   .refine(
     (input) =>

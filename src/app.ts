@@ -21,6 +21,10 @@ import { webhooksRouter } from "./routes/webhooks.js";
 
 export function createApp() {
   const app = express();
+
+  // Necesario para que el rate limit vea la IP real detras del proxy
+  // de Vercel / Render / Railway y no limite a todo el mundo junto.
+  app.set("trust proxy", 1);
   const configuredOrigins = (process.env.FRONTEND_ORIGIN ?? "")
     .split(",")
     .map((origin) => origin.trim())
