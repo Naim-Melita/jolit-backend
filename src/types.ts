@@ -88,6 +88,15 @@ export type StoreSettings = {
   };
 };
 
+export type Subscriber = {
+  id: number;
+  name: string;
+  email: string;
+  phone: string;
+  source: string;
+  createdAt: string;
+};
+
 export type AdminAccount = {
   name: string;
   email: string;

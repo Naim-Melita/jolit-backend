@@ -16,6 +16,7 @@ import { ordersRouter } from "./routes/orders.js";
 import { productsRouter } from "./routes/products.js";
 import { settingsRouter } from "./routes/settings.js";
 import { shippingRouter } from "./routes/shipping.js";
+import { subscribersRouter } from "./routes/subscribers.js";
 import { uploadsRouter } from "./routes/uploads.js";
 import { webhooksRouter } from "./routes/webhooks.js";
 
@@ -79,6 +80,7 @@ export function createApp() {
   app.use("/api/shipping", shippingRouter);
   app.use("/api/orders", ordersRouter);
   app.use("/api/favorites", favoritesRouter);
+  app.use("/api/subscribers", subscribersRouter);
   app.use("/api/uploads", uploadRateLimit, requireAdminAccess, uploadsRouter);
 
   app.use((_req, _res, next) => next(notFound("Route not found")));
