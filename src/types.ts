@@ -69,6 +69,13 @@ export type OrderEvent = {
 export type StoreSettings = {
   storeName: string;
   whatsappNumber: string;
+  seller: {
+    legalName: string;
+    taxId: string;
+    address: string;
+    email: string;
+    dataFiscalUrl: string;
+  };
   shipping: {
     provider: string;
     service: string;

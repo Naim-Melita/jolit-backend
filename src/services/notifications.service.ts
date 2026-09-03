@@ -1,5 +1,6 @@
 import { escapeHtml, sendEmail } from "../lib/email.js";
-import type { Order } from "../types.js";
+import type { Order, StoreSettings } from "../types.js";
+import { buildOrderReceiptPdf, receiptFileName } from "./receipt.service.js";
 
 const money = (value: string | number) =>
   `$${Number(value).toLocaleString("es-AR", { minimumFractionDigits: 2 })}`;
@@ -141,4 +142,62 @@ export async function notifyNewOrder(order: Order, storeName: string) {
 
   const results = await Promise.all(tasks);
   return results.filter(Boolean).length;
+}
+
+function paidEmail(order: Order, storeName: string) {
+  const body = `
+    <p style="color:#374151;line-height:1.6;">
+      Hola ${escapeHtml(order.customerName)}, confirmamos el pago de tu pedido
+      <strong>${escapeHtml(order.orderNumber)}</strong>. Ya lo estamos preparando.
+    </p>
+    <p style="background:#f0fdf4;border-radius:8px;padding:14px;color:#374151;line-height:1.6;">
+      Te adjuntamos el comprobante en PDF. Cuando lo despachemos te pasamos el
+      codigo de seguimiento.
+    </p>
+    <table style="width:100%;border-collapse:collapse;margin-top:18px;color:#374151;font-size:15px;">
+      ${itemRows(order)}
+      ${totalsBlock(order)}
+    </table>
+    <p style="margin-top:22px;color:#6b7280;font-size:14px;line-height:1.6;">
+      Entrega en ${escapeHtml(order.shippingAddress || "-")},
+      ${escapeHtml(order.shippingCity)} ${escapeHtml(order.shippingPostalCode)}.
+      ${order.shippingEta ? `Estimado: ${escapeHtml(order.shippingEta)}.` : ""}
+    </p>
+    <p style="margin-top:22px;color:#6b7280;font-size:13px;">
+      ${escapeHtml(storeName)}
+    </p>`;
+
+  return {
+    subject: `Confirmamos tu pago - pedido ${order.orderNumber}`,
+    html: layout("Recibimos tu pago", body),
+  };
+}
+
+/**
+ * Avisa a la clienta que el pago entro y le manda el comprobante en PDF.
+ * Se dispara al pasar el pedido a "paid". Si falla el PDF, igual sale el mail:
+ * la confirmacion importa mas que el adjunto.
+ */
+export async function notifyOrderPaid(order: Order, settings: StoreSettings) {
+  const { subject, html } = paidEmail(order, settings.storeName);
+
+  let attachments;
+  try {
+    attachments = [
+      {
+        filename: receiptFileName(order),
+        content: await buildOrderReceiptPdf(order, settings),
+      },
+    ];
+  } catch (error) {
+    console.error(`No se pudo generar el comprobante de ${order.orderNumber}`, error);
+  }
+
+  return sendEmail({
+    to: order.customerEmail,
+    subject,
+    html,
+    replyTo: process.env.OWNER_EMAIL,
+    attachments,
+  });
 }

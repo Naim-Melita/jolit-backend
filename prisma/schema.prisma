@@ -205,6 +205,7 @@ model StoreSettings {
   whatsappNumber String   @default("5491131134189")
   shipping       Json
   promoBanner    Json
+  seller         Json     @default("{}")
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 

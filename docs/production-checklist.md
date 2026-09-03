@@ -15,6 +15,9 @@ node dist/scripts/set-admin.js --email=vos@tudominio.com
 - Configurar `RESEND_API_KEY`, `EMAIL_FROM` y `OWNER_EMAIL` para que salgan
   los mails de confirmacion. Sin esto los pedidos se guardan igual, pero
   nadie recibe aviso.
+- Cargar los datos del vendedor desde el panel, en la pestaña Tienda: razon
+  social, CUIT, domicilio, email y URL del Data Fiscal. Aparecen en el pie del
+  sitio, en las paginas legales y en el comprobante que recibe la clienta.
 - Rotar `CLERK_SECRET_KEY` si fue compartida fuera del entorno seguro.
 - Rotar `CLOUDINARY_API_SECRET` si fue compartida fuera del entorno seguro.
 - Configurar `DATABASE_URL` de PostgreSQL cloud.

@@ -6,11 +6,17 @@ export function isEmailConfigured() {
   return Boolean(process.env.RESEND_API_KEY && process.env.EMAIL_FROM);
 }
 
+export type EmailAttachment = {
+  filename: string;
+  content: Buffer;
+};
+
 type SendEmailInput = {
   to: string;
   subject: string;
   html: string;
   replyTo?: string;
+  attachments?: EmailAttachment[];
 };
 
 /**
@@ -41,6 +47,15 @@ export async function sendEmail(input: SendEmailInput): Promise<boolean> {
         subject: input.subject,
         html: input.html,
         ...(input.replyTo ? { reply_to: input.replyTo } : {}),
+        ...(input.attachments?.length
+          ? {
+              // Resend espera el contenido del adjunto en base64.
+              attachments: input.attachments.map((attachment) => ({
+                filename: attachment.filename,
+                content: attachment.content.toString("base64"),
+              })),
+            }
+          : {}),
       }),
     });
 

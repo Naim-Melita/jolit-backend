@@ -8,6 +8,13 @@ type SettingsInput = z.infer<typeof settingsSchema>;
 const DEFAULT_SETTINGS: StoreSettings = {
   storeName: "Jolit",
   whatsappNumber: "5491131134189",
+  seller: {
+    legalName: "",
+    taxId: "",
+    address: "",
+    email: "",
+    dataFiscalUrl: "",
+  },
   shipping: {
     provider: "Correo Argentino",
     service: "PAQ.AR",
@@ -36,6 +43,7 @@ export async function getStoreSettings(): Promise<StoreSettings> {
       whatsappNumber: DEFAULT_SETTINGS.whatsappNumber,
       shipping: DEFAULT_SETTINGS.shipping,
       promoBanner: DEFAULT_SETTINGS.promoBanner,
+      seller: DEFAULT_SETTINGS.seller,
     },
     update: {},
   });
@@ -62,6 +70,10 @@ export async function updateStoreSettings(
         ...DEFAULT_SETTINGS.promoBanner,
         ...input.promoBanner,
       },
+      seller: {
+        ...DEFAULT_SETTINGS.seller,
+        ...input.seller,
+      },
     },
     update: {
       storeName: input.storeName,
@@ -74,6 +86,10 @@ export async function updateStoreSettings(
         ...current.promoBanner,
         ...input.promoBanner,
       },
+      seller: {
+        ...current.seller,
+        ...input.seller,
+      },
     },
   });
 
@@ -85,6 +101,7 @@ function normalizeSettings(settings: {
   whatsappNumber: string;
   shipping: unknown;
   promoBanner: unknown;
+  seller?: unknown;
 }): StoreSettings {
   return {
     storeName: settings.storeName,
@@ -96,6 +113,10 @@ function normalizeSettings(settings: {
     promoBanner: {
       ...DEFAULT_SETTINGS.promoBanner,
       ...(isObject(settings.promoBanner) ? settings.promoBanner : {}),
+    },
+    seller: {
+      ...DEFAULT_SETTINGS.seller,
+      ...(isObject(settings.seller) ? settings.seller : {}),
     },
   };
 }

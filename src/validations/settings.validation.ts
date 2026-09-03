@@ -21,6 +21,22 @@ export const settingsSchema = z.object({
       gbaRate: 3500,
       interiorRate: 5500,
     }),
+  seller: z
+    .object({
+      legalName: z.string().max(120).default(""),
+      taxId: z.string().max(20).default(""),
+      address: z.string().max(160).default(""),
+      email: z.string().max(120).default(""),
+      dataFiscalUrl: z.string().max(300).default(""),
+    })
+    .optional()
+    .default({
+      legalName: "",
+      taxId: "",
+      address: "",
+      email: "",
+      dataFiscalUrl: "",
+    }),
   promoBanner: z.object({
     enabled: z.coerce.boolean(),
     title: z.string().max(80).default(""),

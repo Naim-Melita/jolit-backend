@@ -2,6 +2,7 @@ import { quoteCorreoArgentino } from "../lib/correoArgentino.js";
 import { badRequest, notFound } from "../lib/http.js";
 import { toMoney } from "../lib/money.js";
 import { prisma } from "../lib/prisma.js";
+import { notifyOrderPaid } from "./notifications.service.js";
 import { priceItems } from "./pricing.service.js";
 import { getStoreSettings } from "./settings.service.js";
 import {
@@ -257,6 +258,8 @@ export async function updateOrderStatus(
   id: number,
   input: OrderStatusInput
 ): Promise<Order> {
+  let becamePaid = false;
+
   const order = await prisma.$transaction(async (tx) => {
     const current = await tx.order.findUnique({
       where: { id },
@@ -264,6 +267,10 @@ export async function updateOrderStatus(
     });
 
     if (!current) throw notFound("Order not found");
+
+    // Solo la transicion a pagado, no cada guardado: remarcar "Pagado" no
+    // tiene que reenviar el comprobante.
+    becamePaid = input.status === "paid" && current.status !== "paid";
 
     if (input.status === "cancelled" && current.status !== "cancelled") {
       for (const item of current.items) {
@@ -307,7 +314,36 @@ export async function updateOrderStatus(
     });
   });
 
-  return toOrderResponse(order);
+  const response = toOrderResponse(order);
+
+  if (becamePaid) {
+    // Despues de commitear y sin bloquear la respuesta: un mail que falla no
+    // puede voltear el cambio de estado.
+    void sendPaidReceipt(response);
+  }
+
+  return response;
+}
+
+async function sendPaidReceipt(order: Order) {
+  try {
+    const settings = await getStoreSettings();
+    const sent = await notifyOrderPaid(order, settings);
+
+    await addOrderEvent(
+      prisma,
+      order.id,
+      "status_changed",
+      sent
+        ? `Comprobante enviado a ${order.customerEmail}`
+        : "No se pudo enviar el comprobante por mail"
+    );
+  } catch (error) {
+    console.error(
+      `Fallo el comprobante del pedido ${order.orderNumber}`,
+      error
+    );
+  }
 }
 
 export async function updateOrderShipping(
@@ -433,7 +469,7 @@ async function upsertCustomerForOrder(
 }
 
 async function addOrderEvent(
-  tx: PrismaTransaction,
+  tx: PrismaTransaction | typeof prisma,
   orderId: number,
   type: "created" | "status_changed" | "shipping_updated",
   message: string
