@@ -15,6 +15,14 @@ node dist/scripts/set-admin.js --email=vos@tudominio.com
 - Configurar `RESEND_API_KEY`, `EMAIL_FROM` y `OWNER_EMAIL` para que salgan
   los mails de confirmacion. Sin esto los pedidos se guardan igual, pero
   nadie recibe aviso.
+- Verificar el dominio en resend.com/domains y recien ahi poner en `EMAIL_FROM`
+  una direccion de ese dominio (por ejemplo `Jolit <pedidos@tudominio.com>`).
+  Con el remitente de prueba `onboarding@resend.dev` Resend SOLO deja enviar a
+  la casilla de la cuenta de Resend: a cualquier otro destinatario responde 403
+  y la clienta no recibe nada.
+- Una vez verificado el dominio, cambiar `OWNER_EMAIL` a jolitcontacto@gmail.com.
+  Hoy apunta a la casilla de la cuenta de Resend porque es la unica que el
+  remitente de prueba acepta.
 - Cargar los datos del vendedor desde el panel, en la pestaña Tienda: razon
   social, CUIT, domicilio, email y URL del Data Fiscal. Aparecen en el pie del
   sitio, en las paginas legales y en el comprobante que recibe la clienta.
