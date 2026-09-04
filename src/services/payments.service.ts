@@ -17,6 +17,18 @@ function getFrontendUrl() {
   return first || "http://localhost:5173";
 }
 
+/** Mercado Pago separa nombre y apellido; nosotros pedimos un campo solo. */
+function partirNombre(completo: string) {
+  const partes = completo.trim().split(" ").filter(Boolean);
+
+  if (partes.length < 2) return { name: completo.trim(), surname: "" };
+
+  return {
+    name: partes[0],
+    surname: partes.slice(1).join(" "),
+  };
+}
+
 function getNotificationUrl() {
   const base = process.env.BACKEND_PUBLIC_URL?.trim();
   if (!base) return undefined;
@@ -54,6 +66,7 @@ export async function createPaymentPreference(orderId: number) {
 
   const frontendUrl = getFrontendUrl();
   const notificationUrl = getNotificationUrl();
+  const telefono = [...order.customerPhone].filter((c) => c >= "0" && c <= "9").join("");
 
   // Mercado Pago rechaza auto_return si la URL de vuelta no es publica.
   // En local la clienta vuelve con el boton de la pantalla de MP.
@@ -69,9 +82,20 @@ export async function createPaymentPreference(orderId: number) {
         unit_price: Number(item.price.toString()),
         currency_id: "ARS",
       })),
+      // Cuanto mas completo va el payer, menos le vuelve a pedir Mercado Pago:
+      // la clienta ya nos dio todo esto en el checkout.
       payer: {
-        name: order.customerName,
+        ...partirNombre(order.customerName),
         email: order.customerEmail,
+        ...(telefono ? { phone: { number: telefono } } : {}),
+        ...(order.shippingAddress || order.shippingPostalCode
+          ? {
+              address: {
+                street_name: order.shippingAddress || order.shippingCity,
+                zip_code: order.shippingPostalCode,
+              },
+            }
+          : {}),
       },
       shipments: {
         cost: Number(order.shippingCost.toString()),
