@@ -1,5 +1,6 @@
 import { escapeHtml, sendEmail } from "../lib/email.js";
 import type { Order, StoreSettings } from "../types.js";
+import { orderUrl } from "./emailCopy.js";
 import { buildOrderReceiptPdf, receiptFileName } from "./receipt.service.js";
 
 const money = (value: string | number) =>
@@ -59,8 +60,13 @@ function customerEmail(order: Order, storeName: string) {
       <strong>${escapeHtml(order.orderNumber)}</strong>.
     </p>
     <p style="background:#fdf2f8;border-radius:8px;padding:14px;color:#374151;line-height:1.6;">
-      Todavia falta un paso: escribinos por WhatsApp para coordinar el pago y el
-      envio. Si ya lo hiciste, ignora este mensaje.
+      Si ya pagaste, en un momento te llega la confirmacion con el comprobante
+      y podes ignorar este mensaje.
+      <br><br>
+      Si no llegaste a completar el pago, guardamos tus piezas y podes
+      retomarlo desde
+      <a href="${orderUrl(order.id)}" style="color:#db2777;font-weight:bold;">
+        esta pagina</a>.
     </p>
     <table style="width:100%;border-collapse:collapse;margin-top:18px;color:#374151;font-size:15px;">
       ${itemRows(order)}
