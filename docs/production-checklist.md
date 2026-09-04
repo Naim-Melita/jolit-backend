@@ -18,6 +18,16 @@ node dist/scripts/set-admin.js --email=vos@tudominio.com
 - Cargar los datos del vendedor desde el panel, en la pestaña Tienda: razon
   social, CUIT, domicilio, email y URL del Data Fiscal. Aparecen en el pie del
   sitio, en las paginas legales y en el comprobante que recibe la clienta.
+- Mercado Pago: cargar el `MP_ACCESS_TOKEN` de produccion (empieza con
+  `APP_USR-`, no `TEST-`), configurar el webhook en el panel de MP apuntando a
+  `https://TU_BACKEND/api/webhooks/mercadopago` con el evento de Pagos, y poner
+  en `MP_WEBHOOK_SECRET` la clave que da ese panel. Una clave inventada hace que
+  el backend rechace todos los avisos y ningun pedido se marque como pagado.
+- Definir `BACKEND_PUBLIC_URL` con la URL publica del backend: sin eso no se le
+  manda `notification_url` a Mercado Pago y no llegan los avisos de pago.
+- Activar las cuotas sin interes en el panel de Mercado Pago si se van a
+  ofrecer. El minimo a partir del cual se muestran se configura en el panel de
+  la tienda, en Tienda > Pagos.
 - Rotar `CLERK_SECRET_KEY` si fue compartida fuera del entorno seguro.
 - Rotar `CLOUDINARY_API_SECRET` si fue compartida fuera del entorno seguro.
 - Configurar `DATABASE_URL` de PostgreSQL cloud.
