@@ -298,6 +298,20 @@ export async function updateOrderStatus(
         });
       }
 
+      // Si la plata ya entro, cancelar no la devuelve: eso se hace a mano en
+      // Mercado Pago. Queda asentado en el pedido para que no se pase por alto
+      // y la clienta no se quede sin joya y sin plata.
+      if (current.paidAt || current.paymentStatus === "approved") {
+        await addOrderEvent(
+          tx,
+          id,
+          "status_changed",
+          current.paymentId
+            ? `Este pedido estaba pagado. La devolucion NO es automatica: hay que hacerla en Mercado Pago sobre el pago ${current.paymentId}.`
+            : "Este pedido estaba pagado. La devolucion NO es automatica: hay que hacerla en Mercado Pago."
+        );
+      }
+
       await addOrderEvent(
         tx,
         id,
