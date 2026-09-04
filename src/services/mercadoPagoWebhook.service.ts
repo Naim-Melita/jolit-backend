@@ -63,6 +63,7 @@ export async function handleMercadoPagoWebhook(
       paymentId: true,
       orderNumber: true,
       totalAmount: true,
+      customerEmail: true,
     },
   });
 
@@ -106,6 +107,27 @@ export async function handleMercadoPagoWebhook(
     );
 
     return { received: true, status: payment.status, amountMismatch: true };
+  }
+
+  // Un pedido cancelado ya devolvio su stock, y esas piezas pueden estar
+  // vendidas a otra persona. Marcarlo como pagado aca lo venderia dos veces.
+  // Pasa de verdad con el efectivo: el pago puede acreditarse despues de que
+  // el pedido expiro. Lo dejamos cancelado y avisamos para resolverlo a mano.
+  if (order.status === "cancelled") {
+    console.error(
+      `Pedido ${order.orderNumber}: se acredito el pago ${payment.paymentId} sobre un pedido ya cancelado. Requiere revision manual.`
+    );
+
+    await prisma.orderEvent.create({
+      data: {
+        orderId: order.id,
+        type: "status_changed",
+        message:
+          "Se acredito un pago sobre este pedido ya cancelado. Revisar si hay stock para cumplirlo o si corresponde devolver el dinero.",
+      },
+    });
+
+    return { received: true, status: payment.status, paidAfterCancel: true };
   }
 
   if (order.status !== "paid") {

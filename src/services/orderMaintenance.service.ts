@@ -2,9 +2,22 @@ import { prisma } from "../lib/prisma.js";
 
 const DEFAULT_PENDING_HOURS = 48;
 
+/**
+ * Estados de Mercado Pago que significan "el pago arranco pero todavia no se
+ * acredito". El efectivo en Rapipago o Pago Facil puede tardar varios dias,
+ * asi que a esos pedidos no se les puede soltar el stock a las 48 horas.
+ */
+const PAGOS_EN_CURSO = ["pending", "in_process", "in_mediation", "authorized"];
+const DEFAULT_PENDING_PAYMENT_HOURS = 24 * 7;
+
 function getPendingTtlHours() {
   const raw = Number(process.env.PENDING_ORDER_TTL_HOURS);
   return Number.isFinite(raw) && raw > 0 ? raw : DEFAULT_PENDING_HOURS;
+}
+
+function getPendingPaymentTtlHours() {
+  const raw = Number(process.env.PENDING_PAYMENT_TTL_HOURS);
+  return Number.isFinite(raw) && raw > 0 ? raw : DEFAULT_PENDING_PAYMENT_HOURS;
 }
 
 /**
@@ -15,10 +28,25 @@ function getPendingTtlHours() {
 export async function expireStalePendingOrders() {
   const cutoff = new Date(Date.now() - getPendingTtlHours() * 60 * 60 * 1000);
 
+  const cutoffConPago = new Date(
+    Date.now() - getPendingPaymentTtlHours() * 60 * 60 * 1000
+  );
+
   const staleOrders = await prisma.order.findMany({
     where: {
       status: "pending",
-      createdAt: { lt: cutoff },
+      OR: [
+        // Sin pago iniciado: checkout abandonado, se libera rapido.
+        {
+          paymentStatus: { notIn: PAGOS_EN_CURSO },
+          createdAt: { lt: cutoff },
+        },
+        // Con pago en curso: se le da mucho mas tiempo a que se acredite.
+        {
+          paymentStatus: { in: PAGOS_EN_CURSO },
+          createdAt: { lt: cutoffConPago },
+        },
+      ],
     },
     select: {
       id: true,

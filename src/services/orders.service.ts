@@ -182,14 +182,26 @@ export async function createOrder(
     });
 
     for (const item of items) {
-      await tx.inventory.update({
-        where: { productId: item.productId },
+      // El chequeo de priceItems es optimista: entre ese SELECT y este UPDATE
+      // otra compra puede llevarse la ultima pieza. Descontar con la condicion
+      // adentro del UPDATE hace que Postgres bloquee la fila y reevalue el
+      // stock ya commiteado, asi que dos compras simultaneas no pueden vender
+      // la misma unidad.
+      const descontado = await tx.inventory.updateMany({
+        where: {
+          productId: item.productId,
+          quantity: { gte: item.quantity },
+        },
         data: {
           quantity: {
             decrement: item.quantity,
           },
         },
       });
+
+      if (descontado.count === 0) {
+        throw badRequest(`Insufficient stock for ${item.name}`);
+      }
     }
 
     const quote = quoteCorreoArgentino(
