@@ -43,6 +43,37 @@ function totalsBlock(order: Order) {
     </tr>`;
 }
 
+/**
+ * El costo y el plazo de envio son de lo primero que la clienta busca en el
+ * mail. Van en su propio bloque, no perdidos en una linea gris al final.
+ */
+function shippingBlock(order: Order) {
+  const costo =
+    Number(order.shippingCost) === 0 ? "Envio gratis" : money(order.shippingCost);
+  const plazo = order.shippingEta
+    ? ` &middot; llega en ${escapeHtml(order.shippingEta)}`
+    : "";
+  const domicilio = [
+    order.shippingAddress,
+    [order.shippingCity, order.shippingPostalCode].filter(Boolean).join(" "),
+  ]
+    .filter(Boolean)
+    .map(escapeHtml)
+    .join(", ");
+
+  return `
+    <div style="margin-top:22px;border-top:1px solid #f3e8ee;padding-top:16px;">
+      <p style="margin:0 0 6px;font-size:13px;font-weight:bold;color:#6b7280;text-transform:uppercase;letter-spacing:.04em;">
+        Envio
+      </p>
+      <p style="margin:0;color:#111827;font-size:15px;line-height:1.6;">
+        ${escapeHtml(order.shippingProvider)} ${escapeHtml(order.shippingService)}<br>
+        <strong>${costo}</strong>${plazo}
+        ${domicilio ? `<br><span style="color:#6b7280;">${domicilio}</span>` : ""}
+      </p>
+    </div>`;
+}
+
 function layout(title: string, body: string) {
   return `
   <div style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;background:#fdf2f8;padding:24px;">
@@ -72,11 +103,7 @@ function customerEmail(order: Order, storeName: string) {
       ${itemRows(order)}
       ${totalsBlock(order)}
     </table>
-    <p style="margin-top:22px;color:#6b7280;font-size:14px;line-height:1.6;">
-      Entrega en ${escapeHtml(order.shippingAddress || "-")},
-      ${escapeHtml(order.shippingCity)} ${escapeHtml(order.shippingPostalCode)}.
-      ${order.shippingEta ? `Estimado: ${escapeHtml(order.shippingEta)}.` : ""}
-    </p>
+    ${shippingBlock(order)}
     <p style="margin-top:22px;color:#6b7280;font-size:13px;">
       ${escapeHtml(storeName)}
     </p>`;
@@ -87,11 +114,13 @@ function customerEmail(order: Order, storeName: string) {
   };
 }
 
-function ownerEmail(order: Order, storeName: string) {
+/** Aviso a la tienda de que la plata ya entro y hay que despachar. */
+function ownerPaidEmail(order: Order, storeName: string) {
   const body = `
     <p style="color:#374151;line-height:1.6;">
-      Entro el pedido <strong>${escapeHtml(order.orderNumber)}</strong> por
-      <strong>${money(order.totalAmount)}</strong>.
+      Se acredito el pago del pedido
+      <strong>${escapeHtml(order.orderNumber)}</strong> por
+      <strong>${money(order.totalAmount)}</strong>. Ya se puede preparar.
     </p>
     <table style="width:100%;border-collapse:collapse;margin-top:8px;color:#374151;font-size:15px;">
       ${itemRows(order)}
@@ -103,16 +132,21 @@ function ownerEmail(order: Order, storeName: string) {
       ${escapeHtml(order.customerEmail)}<br>
       ${escapeHtml(order.customerPhone)}
     </p>
-    <h2 style="margin:24px 0 8px;font-size:16px;color:#111827;">Entrega</h2>
-    <p style="color:#374151;line-height:1.7;margin:0;">
-      ${escapeHtml(order.shippingAddress || "-")}<br>
-      ${escapeHtml(order.shippingCity)} ${escapeHtml(order.shippingPostalCode)}<br>
-      ${escapeHtml(order.shippingProvider)} ${escapeHtml(order.shippingService)}
-    </p>`;
+    ${shippingBlock(order)}
+    ${
+      order.paymentId
+        ? `<p style="margin-top:22px;color:#6b7280;font-size:13px;">
+             Pago de Mercado Pago N.o ${escapeHtml(order.paymentId)}. Buscalo con
+             ese numero para cruzarlo con el movimiento en tu cuenta.
+           </p>`
+        : ""
+    }`;
 
   return {
-    subject: `Pedido nuevo ${order.orderNumber} - ${money(order.totalAmount)}`,
-    html: layout("Pedido nuevo", body),
+    // El monto va en el asunto: es lo que se lee en la notificacion del
+    // celular sin llegar a abrir el mail.
+    subject: `Cobraste ${money(order.totalAmount)} - pedido ${order.orderNumber}`,
+    html: layout(`Cobraste ${money(order.totalAmount)}`, body),
   };
 }
 
@@ -123,31 +157,17 @@ function ownerEmail(order: Order, storeName: string) {
  */
 export async function notifyNewOrder(order: Order, storeName: string) {
   const customer = customerEmail(order, storeName);
-  const owner = ownerEmail(order, storeName);
-  const ownerAddress = process.env.OWNER_EMAIL;
 
-  const tasks = [
-    sendEmail({
-      to: order.customerEmail,
-      subject: customer.subject,
-      html: customer.html,
-      replyTo: ownerAddress,
-    }),
-  ];
+  // A la tienda no se le avisa aca: el pedido todavia no se pago. El aviso
+  // sale cuando la plata entra, en notifyOrderPaid.
+  const enviado = await sendEmail({
+    to: order.customerEmail,
+    subject: customer.subject,
+    html: customer.html,
+    replyTo: process.env.OWNER_EMAIL,
+  });
 
-  if (ownerAddress) {
-    tasks.push(
-      sendEmail({
-        to: ownerAddress,
-        subject: owner.subject,
-        html: owner.html,
-        replyTo: order.customerEmail,
-      })
-    );
-  }
-
-  const results = await Promise.all(tasks);
-  return results.filter(Boolean).length;
+  return enviado ? 1 : 0;
 }
 
 function paidEmail(order: Order, storeName: string) {
@@ -164,11 +184,7 @@ function paidEmail(order: Order, storeName: string) {
       ${itemRows(order)}
       ${totalsBlock(order)}
     </table>
-    <p style="margin-top:22px;color:#6b7280;font-size:14px;line-height:1.6;">
-      Entrega en ${escapeHtml(order.shippingAddress || "-")},
-      ${escapeHtml(order.shippingCity)} ${escapeHtml(order.shippingPostalCode)}.
-      ${order.shippingEta ? `Estimado: ${escapeHtml(order.shippingEta)}.` : ""}
-    </p>
+    ${shippingBlock(order)}
     <p style="margin-top:22px;color:#6b7280;font-size:13px;">
       ${escapeHtml(storeName)}
     </p>`;
@@ -185,7 +201,9 @@ function paidEmail(order: Order, storeName: string) {
  * la confirmacion importa mas que el adjunto.
  */
 export async function notifyOrderPaid(order: Order, settings: StoreSettings) {
-  const { subject, html } = paidEmail(order, settings.storeName);
+  const cliente = paidEmail(order, settings.storeName);
+  const tienda = ownerPaidEmail(order, settings.storeName);
+  const ownerAddress = process.env.OWNER_EMAIL;
 
   let attachments;
   try {
@@ -199,11 +217,30 @@ export async function notifyOrderPaid(order: Order, settings: StoreSettings) {
     console.error(`No se pudo generar el comprobante de ${order.orderNumber}`, error);
   }
 
-  return sendEmail({
-    to: order.customerEmail,
-    subject,
-    html,
-    replyTo: process.env.OWNER_EMAIL,
-    attachments,
-  });
+  const tasks = [
+    sendEmail({
+      to: order.customerEmail,
+      subject: cliente.subject,
+      html: cliente.html,
+      replyTo: ownerAddress,
+      attachments,
+    }),
+  ];
+
+  if (ownerAddress) {
+    tasks.push(
+      sendEmail({
+        to: ownerAddress,
+        subject: tienda.subject,
+        html: tienda.html,
+        replyTo: order.customerEmail,
+      })
+    );
+  }
+
+  const resultados = await Promise.all(tasks);
+
+  // Devuelve true si al menos le llego a la clienta, que es lo que se
+  // registra en la linea de tiempo del pedido.
+  return resultados[0];
 }

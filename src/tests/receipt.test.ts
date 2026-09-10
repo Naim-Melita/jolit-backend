@@ -138,7 +138,9 @@ describe("notifyOrderPaid", () => {
       const ok = await notifyOrderPaid(order, settings);
 
       assert.equal(ok, true);
-      assert.equal(enviados.length, 1);
+      // Dos mails: el de la clienta con el comprobante y el aviso de cobro a
+      // la tienda. Aca solo nos interesa el primero.
+      assert.equal(enviados.length, 2);
 
       const mail = enviados[0];
       assert.deepEqual(mail.to, ["sofia@example.com"]);

@@ -165,3 +165,23 @@ export async function fetchPaymentSnapshot(
     paidAmount: Number(paidAmount),
   };
 }
+
+/**
+ * Busca en Mercado Pago el pago asociado a un pedido, usando el
+ * external_reference que mandamos al crear la preferencia. Devuelve el pago
+ * aprobado si existe; si no, el ultimo intento, para poder ver en que quedo.
+ */
+export async function buscarPagoDePedido(
+  orderId: number
+): Promise<MercadoPagoPaymentSnapshot | null> {
+  const resultado: any = await getPaymentClient().search({
+    options: { external_reference: String(orderId) },
+  });
+
+  const pagos: any[] = resultado?.results ?? [];
+  if (pagos.length === 0) return null;
+
+  const elegido = pagos.find((p) => p.status === "approved") ?? pagos[0];
+
+  return fetchPaymentSnapshot(String(elegido.id));
+}

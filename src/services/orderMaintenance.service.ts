@@ -1,4 +1,7 @@
+import { isMercadoPagoConfigured } from "../lib/mercadopago.js";
 import { prisma } from "../lib/prisma.js";
+import { aplicarPagoAlPedido } from "./mercadoPagoWebhook.service.js";
+import { buscarPagoDePedido } from "./payments.service.js";
 
 const DEFAULT_PENDING_HOURS = 48;
 
@@ -88,6 +91,25 @@ export async function expireStalePendingOrders() {
   return staleOrders.length;
 }
 
+const DEFAULT_RECONCILE_INTERVAL_MS = 5 * 60 * 1000;
+
+export function startPaymentReconciliation(
+  intervalMs = DEFAULT_RECONCILE_INTERVAL_MS
+) {
+  const run = () => {
+    reconcilePendingPayments().catch((error) =>
+      console.error("Fallo la reconciliacion de pagos", error)
+    );
+  };
+
+  run();
+
+  const timer = setInterval(run, intervalMs);
+  timer.unref?.();
+
+  return timer;
+}
+
 export function startOrderMaintenance(intervalMs = 60 * 60 * 1000) {
   const run = () => {
     expireStalePendingOrders()
@@ -105,4 +127,53 @@ export function startOrderMaintenance(intervalMs = 60 * 60 * 1000) {
   timer.unref?.();
 
   return timer;
+}
+
+/**
+ * Busca en Mercado Pago pagos de pedidos que seguimos viendo como pendientes.
+ *
+ * Existe porque los avisos de webhook se pierden: el servidor pudo estar caido,
+ * pudo haber un corte, o Mercado Pago pudo no alcanzarnos. Sin esta red, la
+ * clienta paga, nadie se entera, y a las 48 horas el pedido se cancela solo.
+ *
+ * Es idempotente porque aplicarPagoAlPedido lo es: si el webhook ya proceso el
+ * pago, esto no vuelve a mandar mails.
+ */
+export async function reconcilePendingPayments() {
+  if (!isMercadoPagoConfigured()) return 0;
+
+  const cutoff = new Date(Date.now() - getPendingPaymentTtlHours() * 60 * 60 * 1000);
+
+  const pendientes = await prisma.order.findMany({
+    where: {
+      status: "pending",
+      // Solo los que llegaron a la pasarela: si no hay preferencia, no hay
+      // nada que buscar del otro lado.
+      paymentPreferenceId: { not: "" },
+      createdAt: { gte: cutoff },
+    },
+    select: { id: true, orderNumber: true },
+  });
+
+  let aplicados = 0;
+
+  for (const order of pendientes) {
+    try {
+      const pago = await buscarPagoDePedido(order.id);
+      if (!pago || !pago.approved) continue;
+
+      const resultado = await aplicarPagoAlPedido(pago);
+
+      if (resultado.paid) {
+        aplicados += 1;
+        console.log(
+          `Reconciliacion: el pedido ${order.orderNumber} estaba pagado y no nos habiamos enterado.`
+        );
+      }
+    } catch (error) {
+      console.error(`No se pudo reconciliar el pedido ${order.orderNumber}`, error);
+    }
+  }
+
+  return aplicados;
 }

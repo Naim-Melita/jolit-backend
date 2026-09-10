@@ -2,7 +2,10 @@ import { HttpError } from "../lib/http.js";
 import { verifyWebhookSignature } from "../lib/mercadopago.js";
 import { prisma } from "../lib/prisma.js";
 import { updateOrderStatus } from "./orders.service.js";
-import { fetchPaymentSnapshot } from "./payments.service.js";
+import {
+  fetchPaymentSnapshot,
+  type MercadoPagoPaymentSnapshot,
+} from "./payments.service.js";
 
 type WebhookHeaders = {
   signature?: string;
@@ -50,6 +53,19 @@ export async function handleMercadoPagoWebhook(
 
   const payment = await fetchPaymentSnapshot(dataId);
 
+  return aplicarPagoAlPedido(payment);
+}
+
+/**
+ * Aplica un pago de Mercado Pago sobre su pedido.
+ *
+ * Vive aparte del webhook porque la reconciliacion periodica llama a lo mismo:
+ * las validaciones de monto, de pedido cancelado y de idempotencia tienen que
+ * ser identicas venga el pago por donde venga.
+ */
+export async function aplicarPagoAlPedido(
+  payment: MercadoPagoPaymentSnapshot
+) {
   if (!payment.orderId) {
     console.warn(`Pago ${payment.paymentId} sin external_reference utilizable`);
     return { received: true, ignored: "sin pedido asociado" };
@@ -135,6 +151,7 @@ export async function handleMercadoPagoWebhook(
     // comprobante por mail.
     await updateOrderStatus(order.id, { status: "paid" });
   }
+
 
   return { received: true, status: payment.status, paid: true };
 }

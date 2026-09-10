@@ -33,6 +33,9 @@ node dist/scripts/set-admin.js --email=vos@tudominio.com
   el backend rechace todos los avisos y ningun pedido se marque como pagado.
 - Definir `BACKEND_PUBLIC_URL` con la URL publica del backend: sin eso no se le
   manda `notification_url` a Mercado Pago y no llegan los avisos de pago.
+  El backend igual reconcilia los pagos pendientes contra Mercado Pago cada 5
+  minutos, asi que un aviso perdido no deja un pedido sin procesar; pero con el
+  webhook configurado la confirmacion es inmediata en vez de tardar unos minutos.
 - Activar las cuotas sin interes en el panel de Mercado Pago si se van a
   ofrecer. El minimo a partir del cual se muestran se configura en el panel de
   la tienda, en Tienda > Pagos.
