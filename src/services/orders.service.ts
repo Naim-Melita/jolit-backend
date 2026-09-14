@@ -2,6 +2,7 @@ import { quoteCorreoArgentino } from "../lib/correoArgentino.js";
 import { badRequest, notFound } from "../lib/http.js";
 import { toMoney } from "../lib/money.js";
 import { prisma } from "../lib/prisma.js";
+import { linkClerkCustomer } from "./customers.service.js";
 import { notifyOrderPaid } from "./notifications.service.js";
 import { priceItems } from "./pricing.service.js";
 import { getStoreSettings } from "./settings.service.js";
@@ -440,43 +441,11 @@ async function upsertCustomerForOrder(
   clerkUserId?: string | null
 ) {
   if (clerkUserId) {
-    const existingByClerk = await tx.customer.findUnique({
-      where: { clerkUserId },
-    });
-
-    if (existingByClerk) {
-      return tx.customer.update({
-        where: { id: existingByClerk.id },
-        data: {
-          email: input.customerEmail,
-          name: input.customerName,
-          phone: input.customerPhone,
-        },
-      });
-    }
-
-    const existingByEmail = await tx.customer.findUnique({
-      where: { email: input.customerEmail },
-    });
-
-    if (existingByEmail) {
-      return tx.customer.update({
-        where: { id: existingByEmail.id },
-        data: {
-          clerkUserId,
-          name: input.customerName,
-          phone: input.customerPhone,
-        },
-      });
-    }
-
-    return tx.customer.create({
-      data: {
-        clerkUserId,
-        name: input.customerName,
-        email: input.customerEmail,
-        phone: input.customerPhone,
-      },
+    return linkClerkCustomer(tx, {
+      clerkUserId,
+      email: input.customerEmail,
+      name: input.customerName,
+      phone: input.customerPhone,
     });
   }
 
