@@ -5,3 +5,6 @@ dist/
 uploads/
 
 /src/generated/prisma
+
+# graphify (salida generada, no versionar)
+graphify-out/
