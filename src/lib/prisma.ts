@@ -13,10 +13,14 @@ export const prisma =
   globalForPrisma.prisma ??
   new PrismaClient({
     adapter,
+    // Sin "query": en desarrollo tapaba la consola con una linea por cada
+    // SELECT. Para depurar una consulta puntual, PRISMA_LOG_QUERIES=1.
     log:
-      process.env.NODE_ENV === "development"
+      process.env.PRISMA_LOG_QUERIES === "1"
         ? ["query", "error", "warn"]
-        : ["error"],
+        : process.env.NODE_ENV === "development"
+          ? ["error", "warn"]
+          : ["error"],
   });
 
 if (process.env.NODE_ENV !== "production") {
