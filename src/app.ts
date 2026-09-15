@@ -31,10 +31,14 @@ export function createApp() {
     .split(",")
     .map((origin) => origin.trim())
     .filter(Boolean);
+  // El dev server del front se permite solo fuera de produccion. Ahi vale
+  // unicamente lo que diga FRONTEND_ORIGIN: no hay motivo para que la API
+  // real le conteste a un navegador parado en localhost.
   const allowedOrigins = new Set([
     ...configuredOrigins,
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
+    ...(process.env.NODE_ENV === "production"
+      ? []
+      : ["http://localhost:5173", "http://127.0.0.1:5173"]),
   ]);
 
   app.use(helmet());
