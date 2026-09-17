@@ -1,3 +1,4 @@
+import { CODIGOS } from "../lib/errorCodes.js";
 import { clerkClient, clerkMiddleware, getAuth } from "@clerk/express";
 import type { NextFunction, Request, Response } from "express";
 import { HttpError } from "../lib/http.js";
@@ -6,24 +7,43 @@ export function isClerkConfigured() {
   return Boolean(process.env.CLERK_PUBLISHABLE_KEY && process.env.CLERK_SECRET_KEY);
 }
 
+/**
+ * Margen de desfase de reloj que toleramos al validar el token de sesion.
+ *
+ * Clerk firma el token con SU hora. Si el reloj del servidor esta unos
+ * segundos atrasado, ve un token "emitido en el futuro" y lo rechaza sin decir
+ * por que: la clienta queda logueada en la pantalla pero el backend la trata
+ * como desconocida, y en la caja aparece "No se pudo sincronizar el carrito".
+ *
+ * Nos paso con 8 segundos de atraso, tres mas que los 5 que Clerk tolera por
+ * defecto. Esto es una red de seguridad, no la solucion: el reloj del servidor
+ * tiene que estar sincronizado por NTP. Tampoco conviene agrandarlo mucho mas,
+ * porque alarga la ventana en la que un token vencido se sigue aceptando.
+ */
+const TOLERANCIA_DE_RELOJ_MS = 30_000;
+
 export function optionalClerkMiddleware() {
   if (!isClerkConfigured()) {
     return (_req: Request, _res: Response, next: NextFunction) => next();
   }
 
-  return clerkMiddleware();
+  return clerkMiddleware({ clockSkewInMs: TOLERANCIA_DE_RELOJ_MS });
 }
 
 export function requireAuth(req: Request, _res: Response, next: NextFunction) {
   if (!isClerkConfigured()) {
-    next(new HttpError(503, "Clerk authentication is not configured"));
+    next(new HttpError(
+        503,
+        "Las cuentas de clientas no estan disponibles en este momento.",
+        CODIGOS.CLERK_NO_CONFIGURADO
+      ));
     return;
   }
 
   const { userId } = getAuth(req);
 
   if (!userId) {
-    next(new HttpError(401, "Authentication required"));
+    next(new HttpError(401, "Necesitas iniciar sesion.", CODIGOS.SESION_REQUERIDA));
     return;
   }
 
@@ -44,14 +64,18 @@ export async function requireClerkAdmin(
 ) {
   try {
     if (!isClerkConfigured()) {
-      next(new HttpError(503, "Clerk authentication is not configured"));
+      next(new HttpError(
+        503,
+        "Las cuentas de clientas no estan disponibles en este momento.",
+        CODIGOS.CLERK_NO_CONFIGURADO
+      ));
       return;
     }
 
     const { userId } = getAuth(req);
 
     if (!userId) {
-      next(new HttpError(401, "Authentication required"));
+      next(new HttpError(401, "Necesitas iniciar sesion.", CODIGOS.SESION_REQUERIDA));
       return;
     }
 
@@ -63,7 +87,11 @@ export async function requireClerkAdmin(
     const isAllowed = emails.some((email) => allowedEmails.has(email));
 
     if (!isAllowed) {
-      next(new HttpError(403, "Admin access required"));
+      next(new HttpError(
+        403,
+        "No tenes permisos para hacer esto.",
+        CODIGOS.SIN_PERMISOS
+      ));
       return;
     }
 
