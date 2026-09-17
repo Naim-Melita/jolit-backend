@@ -1,3 +1,4 @@
+import { CODIGOS } from "../lib/errorCodes.js";
 import { badRequest } from "../lib/http.js";
 import { toMoney } from "../lib/money.js";
 import { prisma } from "../lib/prisma.js";
@@ -41,19 +42,28 @@ export async function priceItems(
     });
 
     if (!product) {
-      throw badRequest(`Product ${item.productId} does not exist`);
+      throw badRequest(
+      "Uno de los productos que elegiste ya no esta disponible.",
+      CODIGOS.PRODUCTO_NO_ENCONTRADO
+    );
     }
 
     if (options.checkStock) {
       const stock = product.inventory?.quantity ?? 0;
       if (stock < item.quantity) {
-        throw badRequest(`Insufficient stock for ${product.name}`);
+        throw badRequest(
+        `Nos quedamos sin stock de ${product.name}.`,
+        CODIGOS.STOCK_INSUFICIENTE
+      );
       }
     }
 
     const activePrice = product.prices[0];
     if (!activePrice) {
-      throw badRequest(`Product ${product.name} does not have an active price`);
+      throw badRequest(
+        `${product.name} no tiene un precio cargado.`,
+        CODIGOS.PRODUCTO_SIN_PRECIO
+      );
     }
 
     const price = Number(activePrice.amount.toString());

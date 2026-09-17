@@ -1,3 +1,4 @@
+import { CODIGOS } from "../lib/errorCodes.js";
 import multer from "multer";
 import { Router } from "express";
 import { uploadImage } from "../controllers/uploads.controller.js";
@@ -10,7 +11,7 @@ const upload = multer({
   },
   fileFilter: (_req, file, cb) => {
     if (!file.mimetype.startsWith("image/")) {
-      cb(badRequest("Only image files are allowed"));
+      cb(badRequest("Solo se pueden subir imagenes.", CODIGOS.IMAGEN_INVALIDA));
       return;
     }
 

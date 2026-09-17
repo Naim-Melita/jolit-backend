@@ -1,3 +1,4 @@
+import { CODIGOS } from "./lib/errorCodes.js";
 import cors from "cors";
 import express from "express";
 import rateLimit from "express-rate-limit";
@@ -89,7 +90,7 @@ export function createApp() {
   app.use("/api/subscribers", subscribersRouter);
   app.use("/api/uploads", uploadRateLimit, requireAdminAccess, uploadsRouter);
 
-  app.use((_req, _res, next) => next(notFound("Route not found")));
+  app.use((_req, _res, next) => next(notFound("Esa direccion no existe.", CODIGOS.RUTA_NO_ENCONTRADA)));
   app.use(errorHandler);
 
   return app;

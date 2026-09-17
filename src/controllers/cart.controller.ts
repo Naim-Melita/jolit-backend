@@ -1,5 +1,6 @@
+import { CODIGOS } from "../lib/errorCodes.js";
 import type { Request, Response } from "express";
-import { badRequest } from "../lib/http.js";
+import { badRequest, HttpError } from "../lib/http.js";
 import { getClerkUserId } from "../middlewares/clerk.js";
 import {
   addCartItem,
@@ -26,7 +27,7 @@ export async function patchCartItem(req: Request, res: Response) {
   const quantity = Number(req.body?.quantity);
 
   if (!Number.isInteger(quantity)) {
-    throw badRequest("Quantity is required");
+    throw badRequest("Falta la cantidad.", CODIGOS.CANTIDAD_INVALIDA);
   }
 
   res.json(await updateCartItem(requireClerkUserId(req), productId, quantity));
@@ -47,11 +48,11 @@ function parseCartItemInput(req: Request) {
   const quantity = Number(req.body?.quantity ?? 1);
 
   if (!Number.isInteger(productId) || productId <= 0) {
-    throw badRequest("Valid productId is required");
+    throw badRequest("No encontramos ese producto.", CODIGOS.PRODUCTO_NO_ENCONTRADO);
   }
 
   if (!Number.isInteger(quantity) || quantity <= 0) {
-    throw badRequest("Valid quantity is required");
+    throw badRequest("La cantidad no es valida.", CODIGOS.CANTIDAD_INVALIDA);
   }
 
   return { productId, quantity };
@@ -61,7 +62,7 @@ function parseProductId(value: string) {
   const productId = Number(value);
 
   if (!Number.isInteger(productId) || productId <= 0) {
-    throw badRequest("Invalid product id");
+    throw badRequest("No encontramos ese producto.", CODIGOS.PRODUCTO_NO_ENCONTRADO);
   }
 
   return productId;
@@ -71,7 +72,7 @@ function requireClerkUserId(req: Request) {
   const clerkUserId = getClerkUserId(req);
 
   if (!clerkUserId) {
-    throw badRequest("Clerk user id is required");
+    throw new HttpError(401, "Necesitas iniciar sesion.", CODIGOS.SESION_REQUERIDA);
   }
 
   return clerkUserId;

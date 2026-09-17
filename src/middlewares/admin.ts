@@ -1,3 +1,4 @@
+import { CODIGOS } from "../lib/errorCodes.js";
 import type { NextFunction, Request, Response } from "express";
 import { isAdminTokenRequest } from "../lib/adminAuth.js";
 import { HttpError } from "../lib/http.js";
@@ -19,7 +20,11 @@ export async function requireAdminAccess(
       return;
     }
 
-    next(new HttpError(401, "Admin authentication required"));
+    next(new HttpError(
+        401,
+        "Necesitas iniciar sesion en el panel.",
+        CODIGOS.ADMIN_AUTH_REQUERIDA
+      ));
   } catch (error) {
     next(error);
   }

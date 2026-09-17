@@ -11,9 +11,9 @@ export const orderItemsSchema = z
   .max(50);
 
 export const orderSchema = z.object({
-  customerName: z.string().min(2),
-  customerEmail: z.string().email(),
-  customerPhone: z.string().min(6),
+  customerName: z.string().min(2, "Ingresa tu nombre."),
+  customerEmail: z.string().email("Reviso el email: no parece valido."),
+  customerPhone: z.string().min(6, "Ingresa un telefono de contacto."),
   shippingAddress: z.string().optional().default(""),
   shippingCity: z.string().optional().default(""),
   shippingPostalCode: z.string().optional().default(""),
@@ -44,6 +44,6 @@ export const orderShippingSchema = z.object({
 });
 
 export const orderLookupSchema = z.object({
-  orderNumber: z.string().min(3),
-  contact: z.string().min(3),
+  orderNumber: z.string().min(3, "Ingresa el numero de pedido."),
+  contact: z.string().min(3, "Ingresa el email o telefono de la compra."),
 });

@@ -1,3 +1,4 @@
+import { CODIGOS } from "../lib/errorCodes.js";
 import { badRequest, notFound } from "../lib/http.js";
 import { prisma } from "../lib/prisma.js";
 import { toCartResponse } from "../mappers/cartMapper.js";
@@ -47,7 +48,7 @@ export async function addCartItem(
   quantity: number
 ) {
   if (quantity <= 0) {
-    throw badRequest("Quantity must be greater than zero");
+    throw badRequest("La cantidad tiene que ser mayor a cero.", CODIGOS.CANTIDAD_INVALIDA);
   }
 
   const cart = await getOrCreateCart(clerkUserId);
@@ -81,7 +82,7 @@ export async function updateCartItem(
   quantity: number
 ) {
   if (quantity <= 0) {
-    throw badRequest("Quantity must be greater than zero");
+    throw badRequest("La cantidad tiene que ser mayor a cero.", CODIGOS.CANTIDAD_INVALIDA);
   }
 
   const cart = await getOrCreateCart(clerkUserId);
@@ -96,7 +97,7 @@ export async function updateCartItem(
   });
 
   if (updated.count === 0) {
-    throw notFound("Cart item not found");
+    throw notFound("Ese producto no esta en tu carrito.", CODIGOS.ITEM_NO_EN_CARRITO);
   }
 
   return getCart(clerkUserId);
@@ -129,7 +130,10 @@ async function getOrCreateCart(clerkUserId: string) {
   const customer = await getCustomerByClerkUserId(clerkUserId);
 
   if (!customer) {
-    throw badRequest("Customer profile is required before using cart");
+    throw badRequest(
+      "Necesitamos tus datos antes de usar el carrito.",
+      CODIGOS.PERFIL_REQUERIDO
+    );
   }
 
   const existing = await prisma.cart.findFirst({
@@ -154,9 +158,12 @@ async function assertProductStock(productId: number, quantity: number) {
     include: { inventory: true },
   });
 
-  if (!product) throw notFound("Product not found");
+  if (!product) throw notFound("No encontramos ese producto.", CODIGOS.PRODUCTO_NO_ENCONTRADO);
 
   if ((product.inventory?.quantity ?? 0) < quantity) {
-    throw badRequest(`Insufficient stock for ${product.name}`);
+    throw badRequest(
+      `Nos quedamos sin stock de ${product.name}.`,
+      CODIGOS.STOCK_INSUFICIENTE
+    );
   }
 }

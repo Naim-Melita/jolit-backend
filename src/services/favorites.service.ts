@@ -1,3 +1,4 @@
+import { CODIGOS } from "../lib/errorCodes.js";
 import { badRequest, notFound } from "../lib/http.js";
 import { prisma } from "../lib/prisma.js";
 import { toProductResponse } from "../mappers/productMapper.js";
@@ -49,12 +50,15 @@ export async function addFavorite(clerkUserId: string, productId: number) {
   const customer = await getCustomerByClerkUserId(clerkUserId);
 
   if (!customer) {
-    throw badRequest("Customer profile is required before adding favorites");
+    throw badRequest(
+      "Necesitamos tus datos antes de guardar favoritos.",
+      CODIGOS.PERFIL_REQUERIDO
+    );
   }
 
   const product = await prisma.product.findUnique({ where: { id: productId } });
 
-  if (!product) throw notFound("Product not found");
+  if (!product) throw notFound("No encontramos ese producto.", CODIGOS.PRODUCTO_NO_ENCONTRADO);
 
   await prisma.favorite.upsert({
     where: {

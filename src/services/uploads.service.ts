@@ -1,3 +1,4 @@
+import { CODIGOS } from "../lib/errorCodes.js";
 import {
   v2 as cloudinary,
   type UploadApiOptions,
@@ -41,9 +42,11 @@ function assertCloudinaryEnv() {
   ].filter((key) => !process.env[key]);
 
   if (missing.length > 0) {
+    console.error(`Cloudinary sin configurar. Falta: ${missing.join(", ")}`);
     throw new HttpError(
-      500,
-      `Cloudinary is not configured. Missing: ${missing.join(", ")}`
+      503,
+      "La subida de imagenes no esta disponible en este momento.",
+      CODIGOS.SERVICIO_NO_DISPONIBLE
     );
   }
 }
@@ -67,7 +70,11 @@ export async function uploadImageToCloudinary({
     });
   } catch (error) {
     console.error("Cloudinary rechazo la imagen", error);
-    throw new HttpError(502, "Image upload failed");
+    throw new HttpError(
+      502,
+      "No pudimos subir la imagen. Probá de nuevo.",
+      CODIGOS.SUBIDA_FALLIDA
+    );
   }
 
   return {

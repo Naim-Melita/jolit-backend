@@ -1,5 +1,6 @@
+import { CODIGOS } from "../lib/errorCodes.js";
 import type { Request, Response } from "express";
-import { badRequest } from "../lib/http.js";
+import { badRequest, HttpError } from "../lib/http.js";
 import { getClerkUserId } from "../middlewares/clerk.js";
 import {
   addFavorite,
@@ -18,7 +19,7 @@ export async function postFavorite(req: Request, res: Response) {
   const productId = Number(req.params.productId);
 
   if (!Number.isInteger(productId) || productId <= 0) {
-    throw badRequest("Invalid product id");
+    throw badRequest("No encontramos ese producto.", CODIGOS.PRODUCTO_NO_ENCONTRADO);
   }
 
   res.status(201).json(await addFavorite(clerkUserId, productId));
@@ -29,7 +30,7 @@ export async function deleteFavorite(req: Request, res: Response) {
   const productId = Number(req.params.productId);
 
   if (!Number.isInteger(productId) || productId <= 0) {
-    throw badRequest("Invalid product id");
+    throw badRequest("No encontramos ese producto.", CODIGOS.PRODUCTO_NO_ENCONTRADO);
   }
 
   await removeFavorite(clerkUserId, productId);
@@ -41,7 +42,7 @@ function requireClerkUserId(req: Request) {
   const clerkUserId = getClerkUserId(req);
 
   if (!clerkUserId) {
-    throw badRequest("Clerk user id is required");
+    throw new HttpError(401, "Necesitas iniciar sesion.", CODIGOS.SESION_REQUERIDA);
   }
 
   return clerkUserId;

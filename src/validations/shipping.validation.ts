@@ -16,7 +16,7 @@ export const shippingQuoteSchema = z
       input.address.trim().length >= 4 ||
       input.city.trim().length >= 2,
     {
-      message: "Postal code or address is required",
+      message: "Necesitamos tu codigo postal, tu direccion o tu ciudad.",
       path: ["postalCode"],
     }
   );

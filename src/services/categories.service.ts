@@ -1,3 +1,4 @@
+import { CODIGOS } from "../lib/errorCodes.js";
 import { badRequest, notFound } from "../lib/http.js";
 import { prisma } from "../lib/prisma.js";
 import { slugify } from "../lib/slug.js";
@@ -23,7 +24,7 @@ export async function createCategory(input: CategoryInput) {
   const slugTaken = await prisma.category.findUnique({ where: { slug } });
 
   if (slugTaken) {
-    throw badRequest("Category slug already exists");
+    throw badRequest("Ya hay una categoria con ese enlace.", CODIGOS.SLUG_DUPLICADO);
   }
 
   return prisma.category.create({
@@ -42,7 +43,7 @@ export async function createCategory(input: CategoryInput) {
 export async function updateCategory(id: number, input: UpdateCategoryInput) {
   const category = await prisma.category.findUnique({ where: { id } });
 
-  if (!category) throw notFound("Category not found");
+  if (!category) throw notFound("No encontramos esa categoria.", CODIGOS.CATEGORIA_NO_ENCONTRADA);
 
   const nextSlug = input.slug ?? (input.name ? slugify(input.name) : category.slug);
   const slugTaken = await prisma.category.findFirst({
@@ -53,7 +54,7 @@ export async function updateCategory(id: number, input: UpdateCategoryInput) {
   });
 
   if (slugTaken) {
-    throw badRequest("Category slug already exists");
+    throw badRequest("Ya hay una categoria con ese enlace.", CODIGOS.SLUG_DUPLICADO);
   }
 
   return prisma.category.update({
@@ -80,10 +81,13 @@ export async function deleteCategory(id: number) {
     },
   });
 
-  if (!category) throw notFound("Category not found");
+  if (!category) throw notFound("No encontramos esa categoria.", CODIGOS.CATEGORIA_NO_ENCONTRADA);
 
   if (category._count.products > 0) {
-    throw badRequest("Cannot delete a category with products");
+    throw badRequest(
+      "No se puede borrar una categoria que todavia tiene productos.",
+      CODIGOS.CATEGORIA_CON_PRODUCTOS
+    );
   }
 
   await prisma.category.delete({ where: { id } });

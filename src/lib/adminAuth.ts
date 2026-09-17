@@ -1,3 +1,4 @@
+import { CODIGOS } from "../lib/errorCodes.js";
 import type { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import { randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
@@ -177,7 +178,7 @@ export function assertAdminAuthConfig() {
 
 export async function loginAdmin(email: string, password: string) {
   if (!email || !password) {
-    throw badRequest("Email and password are required");
+    throw badRequest("Completa el email y la contrasenia.", CODIGOS.SOLICITUD_INVALIDA);
   }
 
   const admin = await getAdminAccount();
@@ -189,7 +190,11 @@ export async function loginAdmin(email: string, password: string) {
   const passwordMatches = await verifyAdminPassword(password);
 
   if (!emailMatches || !passwordMatches) {
-    throw new HttpError(401, "Invalid admin credentials");
+    throw new HttpError(
+      401,
+      "Email o contrasenia incorrectos.",
+      CODIGOS.CREDENCIALES_INVALIDAS
+    );
   }
 
   return {
@@ -206,7 +211,11 @@ export async function changeAdminPassword(
   newPassword: string
 ) {
   if (!(await verifyAdminPassword(currentPassword))) {
-    throw new HttpError(401, "Invalid current password");
+    throw new HttpError(
+      401,
+      "La contrasenia actual no es correcta.",
+      CODIGOS.PASSWORD_ACTUAL_INVALIDA
+    );
   }
 
   const nextPassword = hashPassword(newPassword);
@@ -236,7 +245,11 @@ export async function requireAdmin(
 ) {
   try {
     if (!isAdminTokenRequest(req)) {
-      next(new HttpError(401, "Admin authentication required"));
+      next(new HttpError(
+        401,
+        "Necesitas iniciar sesion en el panel.",
+        CODIGOS.ADMIN_AUTH_REQUERIDA
+      ));
       return;
     }
 

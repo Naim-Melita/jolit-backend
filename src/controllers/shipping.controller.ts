@@ -1,3 +1,4 @@
+import { CODIGOS } from "../lib/errorCodes.js";
 import type { Request, Response } from "express";
 import { quoteCorreoArgentino } from "../lib/correoArgentino.js";
 import { badRequest } from "../lib/http.js";
@@ -11,7 +12,10 @@ export async function postShippingQuote(req: Request, res: Response) {
   const numericPostalCode = Number(input.postalCode.replace(/\D/g, ""));
 
   if (input.postalCode && !Number.isFinite(numericPostalCode)) {
-    throw badRequest("Invalid postal code");
+    throw badRequest(
+      "Reviso el codigo postal: no parece valido.",
+      CODIGOS.CODIGO_POSTAL_INVALIDO
+    );
   }
 
   const settings = await getStoreSettings();
