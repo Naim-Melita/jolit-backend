@@ -1,4 +1,5 @@
 import type { Request, Response } from "express";
+import { leerPaginacion } from "../lib/paginacion.js";
 import { productSchema, updateProductSchema } from "../schemas.js";
 import {
   createProduct,
@@ -12,7 +13,9 @@ export async function getProducts(req: Request, res: Response) {
   const category = String(req.query.category ?? "");
   const search = String(req.query.search ?? "");
 
-  res.json(await listProducts({ category, search }));
+  const { limit, cursor } = leerPaginacion(req.query);
+
+  res.json(await listProducts({ category, search, limit, cursor }));
 }
 
 export async function getProduct(req: Request, res: Response) {

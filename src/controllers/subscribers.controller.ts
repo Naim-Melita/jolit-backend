@@ -1,4 +1,5 @@
 import type { Request, Response } from "express";
+import { leerPaginacion } from "../lib/paginacion.js";
 import { subscriberSchema } from "../schemas.js";
 import {
   createSubscriber,
@@ -12,6 +13,6 @@ export async function postSubscriber(req: Request, res: Response) {
   res.status(201).json({ subscribed: true });
 }
 
-export async function getSubscribers(_req: Request, res: Response) {
-  res.json(await listSubscribers());
+export async function getSubscribers(req: Request, res: Response) {
+  res.json(await listSubscribers(leerPaginacion(req.query)));
 }

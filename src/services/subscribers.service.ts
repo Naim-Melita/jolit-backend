@@ -1,3 +1,9 @@
+import {
+  armarPagina,
+  desdeElCursor,
+  resolverLimite,
+  type Pagina,
+} from "../lib/paginacion.js";
 import { prisma } from "../lib/prisma.js";
 import type { subscriberSchema } from "../schemas.js";
 import type { Subscriber } from "../types.js";
@@ -27,12 +33,27 @@ export async function createSubscriber(
   return toSubscriberResponse(subscriber);
 }
 
-export async function listSubscribers(): Promise<Subscriber[]> {
+const SUSCRIPTORES_POR_PAGINA = 50;
+const MAX_SUSCRIPTORES_POR_PAGINA = 200;
+
+/**
+ * La lista de suscriptores solo crece. Antes se devolvia entera en cada carga
+ * del panel.
+ */
+export async function listSubscribers(options: { limit?: number; cursor?: number } = {}): Promise<Pagina<Subscriber>> {
+  const limite = resolverLimite(
+    options.limit,
+    SUSCRIPTORES_POR_PAGINA,
+    MAX_SUSCRIPTORES_POR_PAGINA
+  );
+
   const subscribers = await prisma.subscriber.findMany({
-    orderBy: { createdAt: "desc" },
+    take: limite + 1,
+    ...desdeElCursor(options.cursor),
+    orderBy: { id: "desc" },
   });
 
-  return subscribers.map(toSubscriberResponse);
+  return armarPagina(subscribers, limite, toSubscriberResponse);
 }
 
 function toSubscriberResponse(subscriber: {

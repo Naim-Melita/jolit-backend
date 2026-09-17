@@ -1,3 +1,10 @@
+import {
+  armarPagina,
+  desdeElCursor,
+  resolverLimite,
+  type Pagina,
+} from "../lib/paginacion.js";
+import { CODIGOS } from "../lib/errorCodes.js";
 import { badRequest, notFound } from "../lib/http.js";
 import { prisma } from "../lib/prisma.js";
 import { slugify } from "../lib/slug.js";
@@ -33,14 +40,26 @@ const productInclude = {
   },
 };
 
+const PRODUCTOS_POR_PAGINA = 24;
+const MAX_PRODUCTOS_POR_PAGINA = 100;
+
 export async function listProducts(filters: {
   category?: string;
   search?: string;
-}): Promise<Product[]> {
+  limit?: number;
+  cursor?: number;
+}): Promise<Pagina<Product>> {
   const category = filters.category ?? "";
   const search = filters.search?.trim() ?? "";
+  const limite = resolverLimite(
+    filters.limit,
+    PRODUCTOS_POR_PAGINA,
+    MAX_PRODUCTOS_POR_PAGINA
+  );
 
   const products = await prisma.product.findMany({
+    take: limite + 1,
+    ...desdeElCursor(filters.cursor),
     where: {
       ...(category && category !== "todos"
         ? {
@@ -62,7 +81,7 @@ export async function listProducts(filters: {
     orderBy: { id: "asc" },
   });
 
-  return products.map(toProductResponse);
+  return armarPagina(products, limite, toProductResponse);
 }
 
 export async function getProductBySlug(slug: string): Promise<Product> {
@@ -71,7 +90,7 @@ export async function getProductBySlug(slug: string): Promise<Product> {
     include: productInclude,
   });
 
-  if (!product) throw notFound("Product not found");
+  if (!product) throw notFound("No encontramos ese producto.", CODIGOS.PRODUCTO_NO_ENCONTRADO);
 
   return toProductResponse(product);
 }
@@ -83,13 +102,13 @@ export async function createProduct(input: ProductInput): Promise<Product> {
   });
 
   if (!category) {
-    throw badRequest("Category does not exist");
+    throw badRequest("Esa categoria no existe.", CODIGOS.CATEGORIA_NO_ENCONTRADA);
   }
 
   const slugTaken = await prisma.product.findUnique({ where: { slug } });
 
   if (slugTaken) {
-    throw badRequest("Product slug already exists");
+    throw badRequest("Ya hay un producto con ese enlace.", CODIGOS.SLUG_DUPLICADO);
   }
 
   const product = await prisma.product.create({
@@ -143,7 +162,7 @@ export async function updateProduct(
     },
   });
 
-  if (!current) throw notFound("Product not found");
+  if (!current) throw notFound("No encontramos ese producto.", CODIGOS.PRODUCTO_NO_ENCONTRADO);
 
   const nextCategorySlug = input.category ?? current.category.slug;
   const category = await prisma.category.findUnique({
@@ -151,7 +170,7 @@ export async function updateProduct(
   });
 
   if (!category) {
-    throw badRequest("Category does not exist");
+    throw badRequest("Esa categoria no existe.", CODIGOS.CATEGORIA_NO_ENCONTRADA);
   }
 
   const nextSlug = input.slug ?? (input.name ? slugify(input.name) : current.slug);
@@ -163,7 +182,7 @@ export async function updateProduct(
   });
 
   if (slugTaken) {
-    throw badRequest("Product slug already exists");
+    throw badRequest("Ya hay un producto con ese enlace.", CODIGOS.SLUG_DUPLICADO);
   }
 
   const currentImages = current.images.map((image) => image.url);
@@ -238,7 +257,7 @@ export async function updateProduct(
 export async function deleteProduct(id: number) {
   const product = await prisma.product.findUnique({ where: { id } });
 
-  if (!product) throw notFound("Product not found");
+  if (!product) throw notFound("No encontramos ese producto.", CODIGOS.PRODUCTO_NO_ENCONTRADO);
 
   await prisma.product.delete({ where: { id } });
 }
