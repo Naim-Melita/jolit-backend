@@ -1,3 +1,4 @@
+import { CODIGOS } from "../lib/errorCodes.js";
 import { badRequest, HttpError, notFound } from "../lib/http.js";
 import {
   getPaymentClient,
@@ -43,7 +44,11 @@ function getNotificationUrl() {
  */
 export async function createPaymentPreference(orderId: number) {
   if (!isMercadoPagoConfigured()) {
-    throw new HttpError(503, "Mercado Pago no esta configurado");
+    throw new HttpError(
+      503,
+      "Los pagos no estan disponibles en este momento.",
+      CODIGOS.PAGOS_NO_DISPONIBLES
+    );
   }
 
   const order = await prisma.order.findUnique({
@@ -51,10 +56,13 @@ export async function createPaymentPreference(orderId: number) {
     include: { items: true },
   });
 
-  if (!order) throw notFound("Order not found");
+  if (!order) throw notFound("No encontramos ese pedido.", CODIGOS.PEDIDO_NO_ENCONTRADO);
 
   if (order.status !== "pending") {
-    throw badRequest("Este pedido ya no esta pendiente de pago");
+    throw badRequest(
+      "Este pedido ya no esta pendiente de pago.",
+      CODIGOS.PEDIDO_NO_PENDIENTE
+    );
   }
 
   const settings = await getStoreSettings();
@@ -103,10 +111,14 @@ export async function createPaymentPreference(orderId: number) {
       },
       // Con esto el webhook y la vuelta al sitio saben de que pedido hablan.
       external_reference: String(order.id),
+      // Los tres caminos vuelven al pedido, nunca al checkout: al mandar a la
+      // clienta a Mercado Pago el carrito ya se vacio, y rearmarlo crearia un
+      // segundo pedido que volveria a reservar el stock del primero. Desde el
+      // pedido puede reintentar el pago sobre el mismo.
       back_urls: {
         success: `${frontendUrl}/order-success/${order.id}`,
         pending: `${frontendUrl}/order-success/${order.id}`,
-        failure: `${frontendUrl}/checkout?pago=rechazado`,
+        failure: `${frontendUrl}/order-success/${order.id}?pago=rechazado`,
       },
       ...(esLocal ? {} : { auto_return: "approved" as const }),
       payment_methods: {
@@ -119,7 +131,11 @@ export async function createPaymentPreference(orderId: number) {
   });
 
   if (!preference.id || !preference.init_point) {
-    throw new HttpError(502, "Mercado Pago no devolvio un link de pago");
+    throw new HttpError(
+      502,
+      "No pudimos abrir el pago. Intentalo de nuevo en un momento.",
+      CODIGOS.PAGO_SIN_LINK
+    );
   }
 
   await prisma.order.update({

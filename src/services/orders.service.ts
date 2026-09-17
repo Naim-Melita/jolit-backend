@@ -1,3 +1,4 @@
+import { CODIGOS } from "../lib/errorCodes.js";
 import { quoteCorreoArgentino } from "../lib/correoArgentino.js";
 import { badRequest, notFound } from "../lib/http.js";
 import { toMoney } from "../lib/money.js";
@@ -110,7 +111,7 @@ export async function getOrderById(id: number): Promise<Order> {
     include: orderInclude,
   });
 
-  if (!order) throw notFound("Order not found");
+  if (!order) throw notFound("No encontramos ese pedido.", CODIGOS.PEDIDO_NO_ENCONTRADO);
 
   return toOrderResponse(order);
 }
@@ -143,7 +144,7 @@ export async function getOrderByIdForClerkUser(
     include: orderInclude,
   });
 
-  if (!order) throw notFound("Order not found");
+  if (!order) throw notFound("No encontramos ese pedido.", CODIGOS.PEDIDO_NO_ENCONTRADO);
 
   return toOrderResponse(order);
 }
@@ -166,7 +167,7 @@ export async function lookupOrder(input: OrderLookupInput) {
     include: orderInclude,
   });
 
-  if (!order) throw notFound("Order not found");
+  if (!order) throw notFound("No encontramos ese pedido.", CODIGOS.PEDIDO_NO_ENCONTRADO);
 
   return toPublicOrderLookupResponse(order);
 }
@@ -201,7 +202,10 @@ export async function createOrder(
       });
 
       if (descontado.count === 0) {
-        throw badRequest(`Insufficient stock for ${item.name}`);
+        throw badRequest(
+          `Nos quedamos sin stock de ${item.name}.`,
+          CODIGOS.STOCK_INSUFICIENTE
+        );
       }
     }
 
@@ -279,7 +283,7 @@ export async function updateOrderStatus(
       include: { items: true },
     });
 
-    if (!current) throw notFound("Order not found");
+    if (!current) throw notFound("No encontramos ese pedido.", CODIGOS.PEDIDO_NO_ENCONTRADO);
 
     // Solo la transicion a pagado, no cada guardado: remarcar "Pagado" no
     // tiene que reenviar el comprobante.
@@ -332,7 +336,7 @@ export async function updateOrderStatus(
       tx,
       id,
       "status_changed",
-      `Estado actualizado a ${input.status}`
+      `Estado actualizado a ${nombreDeEstado(input.status)}`
     );
 
     return tx.order.findUniqueOrThrow({
@@ -380,7 +384,7 @@ export async function updateOrderShipping(
   const order = await prisma.$transaction(async (tx) => {
     const current = await tx.order.findUnique({ where: { id } });
 
-    if (!current) throw notFound("Order not found");
+    if (!current) throw notFound("No encontramos ese pedido.", CODIGOS.PEDIDO_NO_ENCONTRADO);
 
     const shippingCost =
       input.shippingCost === undefined
@@ -461,6 +465,24 @@ async function upsertCustomerForOrder(
       phone: input.customerPhone,
     },
   });
+}
+
+/**
+ * Como se llama cada estado en la linea de tiempo. Son las mismas palabras que
+ * muestra el panel: si el historial dijera "paid" y el pedido "Pagado",
+ * pareceria que hablan de cosas distintas.
+ */
+const NOMBRE_DE_ESTADO: Record<string, string> = {
+  pending: "Pendiente",
+  paid: "Pagado",
+  processing: "Procesando",
+  shipped: "Enviado",
+  delivered: "Entregado",
+  cancelled: "Cancelado",
+};
+
+export function nombreDeEstado(status: string) {
+  return NOMBRE_DE_ESTADO[status] ?? status;
 }
 
 async function addOrderEvent(
