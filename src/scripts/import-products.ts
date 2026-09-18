@@ -4,6 +4,7 @@ import path from "node:path";
 import { leerCsv } from "../lib/csv.js";
 import { leerPrecio } from "../lib/precio.js";
 import { prisma } from "../lib/prisma.js";
+import { normalizarCodigo, siguienteCodigo } from "../lib/codigoDePieza.js";
 import { slugify } from "../lib/slug.js";
 import { uploadImageToCloudinary } from "../services/uploads.service.js";
 
@@ -161,6 +162,21 @@ async function resolverFotos(
   return urls;
 }
 
+/**
+ * Codigo de la pieza: el de la planilla si lo trae, o uno correlativo de la
+ * categoria. Con cien filas, dejar que se generen solos evita repetidos.
+ */
+async function codigoParaLaFila(fila: Fila, categoria: { id: number; name: string }) {
+  if (fila.codigo) return normalizarCodigo(fila.codigo);
+
+  const existentes = await prisma.product.findMany({
+    where: { categoryId: categoria.id, sku: { not: null } },
+    select: { sku: true },
+  });
+
+  return siguienteCodigo(categoria.name, existentes.map((p) => p.sku as string));
+}
+
 async function guardarProducto(fila: Fila, urls: string[]) {
   const categoria = await prisma.category.upsert({
     where: { slug: fila.categoriaSlug },
@@ -172,14 +188,14 @@ async function guardarProducto(fila: Fila, urls: string[]) {
     where: { slug: fila.slug },
     create: {
       slug: fila.slug,
-      sku: fila.codigo || null,
+      sku: await codigoParaLaFila(fila, categoria),
       name: fila.nombre,
       description: fila.descripcion,
       featured: fila.destacado,
       categoryId: categoria.id,
     },
     update: {
-      sku: fila.codigo || null,
+      ...(fila.codigo ? { sku: normalizarCodigo(fila.codigo) } : {}),
       name: fila.nombre,
       description: fila.descripcion,
       featured: fila.destacado,

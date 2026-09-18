@@ -17,7 +17,7 @@ const money = (value: string | number) =>
  * ignoran el CSS y necesitan los atributos del HTML para no romper la tabla.
  * Si la foto no carga, queda el nombre, que es lo importante.
  */
-function itemRows(order: Order) {
+function itemRows(order: Order, { conCodigo = false } = {}) {
   return order.items
     .map((item) => {
       const foto = item.imageUrl
@@ -25,7 +25,7 @@ function itemRows(order: Order) {
              style="display:block;width:56px;height:56px;object-fit:cover;border-radius:6px;border:1px solid #f3e8ee;">`
         : "";
 
-      const codigo = item.sku
+      const codigo = conCodigo && item.sku
         ? `<br><span style="color:#9ca3af;font-size:12px;">Cod. ${escapeHtml(item.sku)}</span>`
         : "";
 
@@ -147,7 +147,7 @@ function ownerPaidEmail(order: Order, storeName: string) {
       <strong>${money(order.totalAmount)}</strong>. Ya se puede preparar.
     </p>
     <table style="width:100%;border-collapse:collapse;margin-top:8px;color:#374151;font-size:15px;">
-      ${itemRows(order)}
+      ${itemRows(order, { conCodigo: true })}
       ${totalsBlock(order)}
     </table>
     <h2 style="margin:24px 0 8px;font-size:16px;color:#111827;">Cliente</h2>

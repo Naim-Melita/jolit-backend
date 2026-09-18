@@ -38,7 +38,7 @@ model Product {
   slug        String         @unique
   /// Codigo interno de la pieza. Opcional: sirve para buscarla en el stock
   /// fisico y aparece en el comprobante.
-  sku         String?
+  sku         String?         @unique
   name        String
   description String
   featured    Boolean        @default(false)
