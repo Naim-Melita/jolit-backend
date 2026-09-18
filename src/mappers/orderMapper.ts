@@ -27,6 +27,8 @@ type OrderWithRelations = {
     productId: number | null;
     slug: string;
     name: string;
+    sku: string | null;
+    imageUrl: string;
     price: { toString(): string };
     quantity: number;
     subtotal: { toString(): string };
@@ -68,6 +70,8 @@ export function toOrderResponse(order: OrderWithRelations): Order {
       productId: item.productId ?? 0,
       slug: item.slug,
       name: item.name,
+      sku: item.sku,
+      imageUrl: item.imageUrl,
       price: toMoney(item.price),
       quantity: item.quantity,
       subtotal: toMoney(item.subtotal),

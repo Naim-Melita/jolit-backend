@@ -11,6 +11,10 @@ export type PricedItem = {
   productId: number;
   slug: string;
   name: string;
+  /** Codigo interno, si la pieza tiene uno cargado. */
+  sku: string | null;
+  /** Foto principal al momento de comprar, para el mail y el comprobante. */
+  imageUrl: string;
   price: string;
   quantity: number;
   subtotal: string;
@@ -33,6 +37,10 @@ export async function priceItems(
       where: { id: item.productId },
       include: {
         inventory: true,
+        images: {
+          where: { isPrimary: true },
+          take: 1,
+        },
         prices: {
           where: { active: true },
           orderBy: { createdAt: "desc" },
@@ -74,6 +82,8 @@ export async function priceItems(
       productId: product.id,
       slug: product.slug,
       name: product.name,
+      sku: product.sku,
+      imageUrl: product.images[0]?.url ?? "",
       price: toMoney(price),
       quantity: item.quantity,
       subtotal: toMoney(itemSubtotal),

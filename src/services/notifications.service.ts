@@ -1,24 +1,47 @@
 import { escapeHtml, sendEmail } from "../lib/email.js";
 import type { Order, StoreSettings } from "../types.js";
-import { orderUrl } from "./emailCopy.js";
+import { orderLookupUrl } from "./emailCopy.js";
 import { buildOrderReceiptPdf, receiptFileName } from "./receipt.service.js";
 
 const money = (value: string | number) =>
   `$${Number(value).toLocaleString("es-AR", { minimumFractionDigits: 2 })}`;
 
+/**
+ * Cada linea con su foto y su codigo.
+ *
+ * Con una lista larga de joyas parecidas, el nombre solo no alcanza para
+ * saber cual es cual: la foto se reconoce de un vistazo y el codigo sirve
+ * para buscar la pieza en el stock fisico.
+ *
+ * La miniatura va con ancho y alto fijos porque varios clientes de correo
+ * ignoran el CSS y necesitan los atributos del HTML para no romper la tabla.
+ * Si la foto no carga, queda el nombre, que es lo importante.
+ */
 function itemRows(order: Order) {
   return order.items
-    .map(
-      (item) => `
+    .map((item) => {
+      const foto = item.imageUrl
+        ? `<img src="${escapeHtml(item.imageUrl)}" alt="" width="56" height="56"
+             style="display:block;width:56px;height:56px;object-fit:cover;border-radius:6px;border:1px solid #f3e8ee;">`
+        : "";
+
+      const codigo = item.sku
+        ? `<br><span style="color:#9ca3af;font-size:12px;">Cod. ${escapeHtml(item.sku)}</span>`
+        : "";
+
+      return `
         <tr>
-          <td style="padding:8px 0;border-bottom:1px solid #f3e8ee;">
-            ${escapeHtml(item.name)} &times; ${item.quantity}
+          <td style="padding:10px 10px 10px 0;border-bottom:1px solid #f3e8ee;width:56px;">
+            ${foto}
           </td>
-          <td style="padding:8px 0;border-bottom:1px solid #f3e8ee;text-align:right;">
+          <td style="padding:10px 0;border-bottom:1px solid #f3e8ee;">
+            ${escapeHtml(item.name)} &times; ${item.quantity}${codigo}
+          </td>
+          <td style="padding:10px 0;border-bottom:1px solid #f3e8ee;text-align:right;white-space:nowrap;">
             ${money(item.subtotal)}
           </td>
-        </tr>`
-    )
+        </tr>`;
+    })
     .join("");
 }
 
@@ -26,17 +49,18 @@ function totalsBlock(order: Order) {
   const shipping =
     Number(order.shippingCost) === 0 ? "Gratis" : money(order.shippingCost);
 
+  // colspan 2 porque la tabla de items tiene una columna extra para la foto.
   return `
     <tr>
-      <td style="padding:8px 0;">Subtotal</td>
+      <td colspan="2" style="padding:8px 0;">Subtotal</td>
       <td style="padding:8px 0;text-align:right;">${money(order.subtotalAmount)}</td>
     </tr>
     <tr>
-      <td style="padding:8px 0;">Envio (${escapeHtml(order.shippingProvider)})</td>
+      <td colspan="2" style="padding:8px 0;">Envio (${escapeHtml(order.shippingProvider)})</td>
       <td style="padding:8px 0;text-align:right;">${shipping}</td>
     </tr>
     <tr>
-      <td style="padding:12px 0 0;font-weight:bold;font-size:17px;">Total</td>
+      <td colspan="2" style="padding:12px 0 0;font-weight:bold;font-size:17px;">Total</td>
       <td style="padding:12px 0 0;text-align:right;font-weight:bold;font-size:17px;color:#db2777;">
         ${money(order.totalAmount)}
       </td>
@@ -96,8 +120,8 @@ function customerEmail(order: Order, storeName: string) {
       <br><br>
       Si no llegaste a completar el pago, guardamos tus piezas y podes
       retomarlo desde
-      <a href="${orderUrl(order.id)}" style="color:#db2777;font-weight:bold;">
-        esta pagina</a>.
+      <a href="${orderLookupUrl(order.orderNumber)}" style="color:#db2777;font-weight:bold;">
+        esta pagina</a>. Te va a pedir el email de la compra.
     </p>
     <table style="width:100%;border-collapse:collapse;margin-top:18px;color:#374151;font-size:15px;">
       ${itemRows(order)}

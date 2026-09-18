@@ -7,6 +7,8 @@ export type Category = {
 export type Product = {
   id: number;
   slug: string;
+  /** Codigo interno de la pieza, opcional. */
+  sku: string | null;
   name: string;
   description: string;
   price: string;
@@ -29,6 +31,8 @@ export type OrderItem = {
   productId: number;
   slug: string;
   name: string;
+  sku: string | null;
+  imageUrl: string;
   price: string;
   quantity: number;
   subtotal: string;

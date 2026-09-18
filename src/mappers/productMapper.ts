@@ -3,6 +3,7 @@ import type { Product } from "../types.js";
 type ProductWithRelations = {
   id: number;
   slug: string;
+  sku: string | null;
   name: string;
   description: string;
   featured: boolean;
@@ -33,6 +34,7 @@ export function toProductResponse(product: ProductWithRelations): Product {
   return {
     id: product.id,
     slug: product.slug,
+    sku: product.sku,
     name: product.name,
     description: product.description,
     price: formatMoney(activePrice?.amount),

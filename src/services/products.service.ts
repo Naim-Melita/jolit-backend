@@ -114,6 +114,7 @@ export async function createProduct(input: ProductInput): Promise<Product> {
   const product = await prisma.product.create({
     data: {
       slug,
+      sku: input.sku || null,
       name: input.name,
       description: input.description,
       featured: input.featured,
@@ -197,6 +198,7 @@ export async function updateProduct(
       where: { id },
       data: {
         slug: nextSlug,
+        sku: input.sku !== undefined ? input.sku || null : undefined,
         name: input.name ?? current.name,
         description: input.description ?? current.description,
         featured: input.featured ?? current.featured,
