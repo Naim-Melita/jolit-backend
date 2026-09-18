@@ -10,14 +10,16 @@ const money = (value: string | number) =>
  * Cada linea con su foto y su codigo.
  *
  * Con una lista larga de joyas parecidas, el nombre solo no alcanza para
- * saber cual es cual: la foto se reconoce de un vistazo y el codigo sirve
- * para buscar la pieza en el stock fisico.
+ * saber cual es cual: la foto se reconoce de un vistazo y el codigo esta
+ * pegado en la pieza, asi que sirve para cruzar el paquete contra la lista.
+ * Lo usan las dos puntas: la tienda para preparar el pedido y la clienta al
+ * recibirlo. En la tienda publica el codigo NO se muestra.
  *
  * La miniatura va con ancho y alto fijos porque varios clientes de correo
  * ignoran el CSS y necesitan los atributos del HTML para no romper la tabla.
  * Si la foto no carga, queda el nombre, que es lo importante.
  */
-function itemRows(order: Order, { conCodigo = false } = {}) {
+function itemRows(order: Order) {
   return order.items
     .map((item) => {
       const foto = item.imageUrl
@@ -25,7 +27,7 @@ function itemRows(order: Order, { conCodigo = false } = {}) {
              style="display:block;width:56px;height:56px;object-fit:cover;border-radius:6px;border:1px solid #f3e8ee;">`
         : "";
 
-      const codigo = conCodigo && item.sku
+      const codigo = item.sku
         ? `<br><span style="color:#9ca3af;font-size:12px;">Cod. ${escapeHtml(item.sku)}</span>`
         : "";
 
@@ -147,7 +149,7 @@ function ownerPaidEmail(order: Order, storeName: string) {
       <strong>${money(order.totalAmount)}</strong>. Ya se puede preparar.
     </p>
     <table style="width:100%;border-collapse:collapse;margin-top:8px;color:#374151;font-size:15px;">
-      ${itemRows(order, { conCodigo: true })}
+      ${itemRows(order)}
       ${totalsBlock(order)}
     </table>
     <h2 style="margin:24px 0 8px;font-size:16px;color:#111827;">Cliente</h2>

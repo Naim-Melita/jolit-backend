@@ -150,6 +150,16 @@ function renderReceipt(
 
   for (const item of order.items) {
     doc.text(item.name, MARGIN, y, { width: 240 });
+
+    // El codigo va debajo del nombre, en gris y mas chico: la clienta lo usa
+    // para cruzar cada pieza del paquete contra esta lista, porque el codigo
+    // esta pegado en la joya. No se muestra en la tienda, solo aca.
+    if (item.sku) {
+      doc.fontSize(8).fillColor(MUTED);
+      doc.text(item.sku, MARGIN, doc.y + 1, { width: 240 });
+      doc.fontSize(10).fillColor(INK);
+    }
+
     const rowHeight = Math.max(doc.y - y, 12);
 
     doc.text(`x${item.quantity}`, COL_QTY, y);
