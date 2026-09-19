@@ -11,6 +11,7 @@ import {
 import {
   createOrder,
   getOrderById,
+  getOrderByPreference,
   getOrderStats,
   listOrders,
   lookupOrder,
@@ -68,4 +69,13 @@ export async function patchOrderStatus(req: Request, res: Response) {
 export async function patchOrderShipping(req: Request, res: Response) {
   const input = orderShippingSchema.parse(req.body);
   res.json(await updateOrderShipping(Number(req.params.id), input));
+}
+
+export async function getOrderPublic(req: Request, res: Response) {
+  res.json(
+    await getOrderByPreference(
+      Number(req.params.id),
+      String(req.query.preferenceId ?? "")
+    )
+  );
 }

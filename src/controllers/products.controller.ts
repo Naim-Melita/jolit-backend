@@ -4,8 +4,9 @@ import { productSchema, updateProductSchema } from "../schemas.js";
 import {
   createProduct,
   deleteProduct,
-  getProductBySlug,
+  getProduct as findProduct,
   listProducts,
+  resolverProducto,
   updateProduct,
 } from "../services/products.service.js";
 
@@ -19,7 +20,7 @@ export async function getProducts(req: Request, res: Response) {
 }
 
 export async function getProduct(req: Request, res: Response) {
-  res.json(await getProductBySlug(req.params.slug));
+  res.json(await findProduct(req.params.identificador));
 }
 
 export async function postProduct(req: Request, res: Response) {
@@ -30,7 +31,7 @@ export async function postProduct(req: Request, res: Response) {
 }
 
 export async function patchProduct(req: Request, res: Response) {
-  const id = Number(req.params.id);
+  const id = await resolverProducto(req.params.identificador);
   const input = updateProductSchema.parse(req.body);
   const product = await updateProduct(id, input);
 
@@ -38,8 +39,7 @@ export async function patchProduct(req: Request, res: Response) {
 }
 
 export async function removeProduct(req: Request, res: Response) {
-  const id = Number(req.params.id);
-  await deleteProduct(id);
+  await deleteProduct(await resolverProducto(req.params.identificador));
 
   res.status(204).send();
 }

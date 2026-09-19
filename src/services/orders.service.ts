@@ -503,3 +503,35 @@ async function addOrderEvent(
 type PrismaTransaction = Parameters<
   Parameters<typeof prisma.$transaction>[0]
 >[0];
+
+/**
+ * El pedido para la pantalla de "recibimos tu pago", buscado por el id de la
+ * preferencia de Mercado Pago.
+ *
+ * Esa pantalla leia el pedido de la memoria de la pestana. Si Mercado Pago
+ * devuelve en otro navegador —lo tipico pagando desde el celular con la app—
+ * la memoria esta vacia y la clienta veia "Pedido no encontrado" justo
+ * despues de haber pagado.
+ *
+ * El id de preferencia hace de llave: es una cadena larga que genera Mercado
+ * Pago, la guardamos al abrir el pago y vuelve en la URL de retorno. Sin ella
+ * el numero de pedido solo no abre nada, asi que nadie puede ir probando
+ * numeros para leer los datos de otras clientas. Por eso devuelve la misma
+ * vista recortada que la consulta publica, sin nombre ni contacto.
+ */
+export async function getOrderByPreference(id: number, preferenceId: string) {
+  const preferencia = preferenceId.trim();
+  const noEncontrado = () =>
+    notFound("No encontramos ese pedido.", CODIGOS.PEDIDO_NO_ENCONTRADO);
+
+  if (!Number.isFinite(id) || !preferencia) throw noEncontrado();
+
+  const order = await prisma.order.findFirst({
+    where: { id, paymentPreferenceId: preferencia },
+    include: orderInclude,
+  });
+
+  if (!order) throw noEncontrado();
+
+  return toPublicOrderLookupResponse(order);
+}

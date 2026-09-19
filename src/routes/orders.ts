@@ -8,6 +8,7 @@ import {
   patchOrderStatus,
   postOrder,
   postOrderLookup,
+  getOrderPublic,
 } from "../controllers/orders.controller.js";
 import { asyncHandler } from "../lib/http.js";
 import { requireAdminAccess } from "../middlewares/admin.js";
@@ -34,6 +35,8 @@ ordersRouter.get("/", requireAdminAccess, asyncHandler(getOrders));
 // Antes de "/:id" para que "stats" no se lea como un id.
 ordersRouter.get("/stats", requireAdminAccess, asyncHandler(getOrdersStats));
 ordersRouter.post("/lookup", lookupRateLimit, asyncHandler(postOrderLookup));
+// La vuelta de Mercado Pago: el id de preferencia hace de llave.
+ordersRouter.get("/:id/public", lookupRateLimit, asyncHandler(getOrderPublic));
 ordersRouter.get("/:id", requireAdminAccess, asyncHandler(getOrder));
 ordersRouter.post("/", createOrderRateLimit, asyncHandler(postOrder));
 ordersRouter.patch("/:id/status", requireAdminAccess, asyncHandler(patchOrderStatus));

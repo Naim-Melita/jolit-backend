@@ -1,9 +1,4 @@
-import {
-  armarPagina,
-  desdeElCursor,
-  resolverLimite,
-  type Pagina,
-} from "../lib/paginacion.js";
+import { armarPagina, resolverLimite, type Pagina } from "../lib/paginacion.js";
 import { CODIGOS } from "../lib/errorCodes.js";
 import { badRequest, notFound } from "../lib/http.js";
 import { prisma } from "../lib/prisma.js";
@@ -44,53 +39,188 @@ const productInclude = {
 const PRODUCTOS_POR_PAGINA = 24;
 const MAX_PRODUCTOS_POR_PAGINA = 100;
 
+type Filtros = { category?: string; search?: string };
+
+/** Las dos tandas en las que se parte el catalogo. */
+type Tanda = "con" | "sin";
+
+/**
+ * Condiciones de busqueda para una tanda.
+ *
+ * Todo va bajo un AND porque la busqueda por texto ya usa un OR: dos OR al
+ * mismo nivel se pisan y la categoria dejaria de filtrar.
+ */
+function dondeBuscar(filtros: Filtros, tanda: Tanda) {
+  const category = filtros.category ?? "";
+  const search = filtros.search?.trim() ?? "";
+  const condiciones = [];
+
+  if (category && category !== "todos") {
+    condiciones.push({ category: { slug: category } });
+  }
+
+  if (search) {
+    condiciones.push({
+      OR: [
+        { name: { contains: search, mode: "insensitive" as const } },
+        { description: { contains: search, mode: "insensitive" as const } },
+        // Por codigo: es lo que escribe un lector de codigo de barras,
+        // que se comporta como un teclado.
+        { sku: { contains: search, mode: "insensitive" as const } },
+      ],
+    });
+  }
+
+  condiciones.push(
+    tanda === "con"
+      ? { inventory: { quantity: { gt: 0 } } }
+      : // Una pieza sin fila de inventario tambien esta agotada.
+        {
+          OR: [
+            { inventory: { is: null } },
+            { inventory: { quantity: { lte: 0 } } },
+          ],
+        }
+  );
+
+  return { AND: condiciones };
+}
+
+/**
+ * Una tanda de productos a partir del cursor.
+ *
+ * Se filtra por `id > cursor` en vez de usar el cursor de Prisma porque asi
+ * sigue funcionando si la pieza del cursor se vendio y se borro mientras la
+ * clienta miraba: Prisma necesita que esa fila exista para anclarse.
+ */
+function buscarTanda(
+  filtros: Filtros,
+  tanda: Tanda,
+  cuantos: number,
+  cursor?: number
+) {
+  if (cuantos <= 0) return Promise.resolve([]);
+
+  const where = dondeBuscar(filtros, tanda);
+
+  return prisma.product.findMany({
+    take: cuantos,
+    where: cursor ? { ...where, id: { gt: cursor } } : where,
+    include: productInclude,
+    orderBy: { id: "asc" },
+  });
+}
+
+/**
+ * En que tanda quedo la ultima pieza de la pagina anterior.
+ *
+ * Si ese producto ya no existe se vuelve a la primera tanda: puede repetir
+ * alguna agotada, pero nunca saltea algo que se puede comprar.
+ */
+async function tandaDelCursor(cursor?: number): Promise<Tanda> {
+  if (!cursor) return "con";
+
+  const producto = await prisma.product.findUnique({
+    where: { id: cursor },
+    select: { inventory: { select: { quantity: true } } },
+  });
+
+  if (!producto) return "con";
+
+  return (producto.inventory?.quantity ?? 0) > 0 ? "con" : "sin";
+}
+
+/**
+ * El catalogo, con las piezas agotadas al final.
+ *
+ * Son piezas unicas: a medida que se venden, el catalogo se iba llenando de
+ * casilleros grises entre medio de lo que si se puede comprar, y en la primera
+ * pagina quedaban para siempre. Se siguen mostrando âsirven para ver el
+ * trabajo y varias se reponenâ pero despues de todo lo disponible.
+ *
+ * Va en dos tandas y no en un ORDER BY porque Prisma no sabe ordenar por
+ * "quantity > 0": ordenar por quantity a secas pondria primero lo que mas
+ * stock tiene, que no es lo que se quiere.
+ */
 export async function listProducts(filters: {
   category?: string;
   search?: string;
   limit?: number;
   cursor?: number;
 }): Promise<Pagina<Product>> {
-  const category = filters.category ?? "";
-  const search = filters.search?.trim() ?? "";
   const limite = resolverLimite(
     filters.limit,
     PRODUCTOS_POR_PAGINA,
     MAX_PRODUCTOS_POR_PAGINA
   );
 
-  const products = await prisma.product.findMany({
-    take: limite + 1,
-    ...desdeElCursor(filters.cursor),
-    where: {
-      ...(category && category !== "todos"
-        ? {
-            category: {
-              slug: category,
-            },
-          }
-        : {}),
-      ...(search
-        ? {
-            OR: [
-              { name: { contains: search, mode: "insensitive" as const } },
-              { description: { contains: search, mode: "insensitive" as const } },
-              // Por codigo: es lo que escribe un lector de codigo de barras,
-              // que se comporta como un teclado.
-              { sku: { contains: search, mode: "insensitive" as const } },
-            ],
-          }
-        : {}),
-    },
-    include: productInclude,
-    orderBy: { id: "asc" },
-  });
+  // Se pide una fila de mas para saber si hay pagina siguiente.
+  const aPedir = limite + 1;
+  const tanda = await tandaDelCursor(filters.cursor);
+  const filas = [];
 
-  return armarPagina(products, limite, toProductResponse);
+  if (tanda === "con") {
+    filas.push(...(await buscarTanda(filters, "con", aPedir, filters.cursor)));
+  }
+
+  // Si lo disponible no llego a llenar la pagina, se completa con agotadas.
+  if (filas.length < aPedir) {
+    filas.push(
+      ...(await buscarTanda(
+        filters,
+        "sin",
+        aPedir - filas.length,
+        tanda === "sin" ? filters.cursor : undefined
+      ))
+    );
+  }
+
+  return armarPagina(filas, limite, toProductResponse);
 }
 
-export async function getProductBySlug(slug: string): Promise<Product> {
+/**
+ * Como se nombra un producto en la API.
+ *
+ * La tienda lo leia por enlace (`/api/products/aros-perla`) y el panel lo
+ * editaba por numero (`PATCH /api/products/4`): quien leia un producto no
+ * podia editarlo con lo que acababa de recibir. Ahora las tres rutas aceptan
+ * las dos formas.
+ *
+ * Todo digitos es un id, el resto es un enlace. Por eso un enlace no puede ser
+ * solo numeros: gana el id. Con nombres de joyas no pasa, y el nombre ya pide
+ * al menos dos letras.
+ */
+/** Escrito a mano: inferido, TypeScript arma una union con campos opcionales
+ * y `donde.id` pasa a ser `number | undefined`. */
+type ComoBuscarlo = { id: number } | { slug: string };
+
+function comoBuscarlo(identificador: string): ComoBuscarlo {
+  const texto = identificador.trim();
+
+  return /^\d+$/.test(texto) ? { id: Number(texto) } : { slug: texto };
+}
+
+/** El id del producto, venga como numero o como enlace. */
+export async function resolverProducto(identificador: string) {
+  const donde = comoBuscarlo(identificador);
+
+  if ("id" in donde) return donde.id;
+
   const product = await prisma.product.findUnique({
-    where: { slug },
+    where: donde,
+    select: { id: true },
+  });
+
+  if (!product) {
+    throw notFound("No encontramos ese producto.", CODIGOS.PRODUCTO_NO_ENCONTRADO);
+  }
+
+  return product.id;
+}
+
+export async function getProduct(identificador: string): Promise<Product> {
+  const product = await prisma.product.findUnique({
+    where: comoBuscarlo(identificador),
     include: productInclude,
   });
 
@@ -98,6 +228,7 @@ export async function getProductBySlug(slug: string): Promise<Product> {
 
   return toProductResponse(product);
 }
+
 
 /**
  * Codigo de la pieza. Si no viene cargado a mano, se genera uno correlativo
