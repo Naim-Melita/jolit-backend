@@ -1,15 +1,27 @@
 import { z } from "zod";
+import { cantidadDeLetras } from "../lib/validaciones.js";
 
 export const productSchema = z.object({
-  name: z.string().min(2),
+  name: z
+    .string()
+    .trim()
+    .refine(
+      (texto) => cantidadDeLetras(texto) >= 2,
+      "El nombre del producto lleva letras."
+    ),
   slug: z.string().min(2).optional(),
-  sku: z.string().max(40).optional().default(""),
-  description: z.string().min(1),
-  price: z.coerce.number().positive(),
-  stock: z.coerce.number().int().min(0),
-  imageUrl: z.string().url(),
-  galleryImages: z.array(z.string().url()).optional().default([]),
-  category: z.string().min(2),
+  sku: z.string().trim().max(40).optional().default(""),
+  description: z.string().trim().min(1, "Escribi una descripcion."),
+  price: z.coerce
+    .number("El precio va en numeros, sin el signo pesos.")
+    .positive("El precio tiene que ser mayor a cero."),
+  stock: z.coerce
+    .number("El stock va en numeros enteros.")
+    .int("El stock va en numeros enteros.")
+    .min(0, "El stock no puede ser negativo."),
+  imageUrl: z.url("La foto principal tiene que ser un enlace."),
+  galleryImages: z.array(z.url("Cada foto tiene que ser un enlace.")).optional().default([]),
+  category: z.string().trim().min(2),
   featured: z.coerce.boolean().optional().default(false),
 });
 

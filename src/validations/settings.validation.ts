@@ -1,8 +1,22 @@
 import { z } from "zod";
+import {
+  cantidadDeLetras,
+  esCuit,
+  esEmail,
+  esTelefono,
+  esUrlWeb,
+} from "../lib/validaciones.js";
+
+/** Los datos del vendedor son opcionales: solo se revisan si se cargaron. */
+const siLoCargo = (valido: (texto: string) => boolean) => (texto: string) =>
+  texto.trim() === "" || valido(texto);
 
 export const settingsSchema = z.object({
-  storeName: z.string().min(2),
-  whatsappNumber: z.string().min(8),
+  storeName: z.string().trim().min(2),
+  whatsappNumber: z
+    .string()
+    .trim()
+    .refine(esTelefono, "El WhatsApp va con numeros, al menos 8."),
   shipping: z
     .object({
       provider: z.string().min(2).default("Correo Argentino"),
@@ -23,11 +37,50 @@ export const settingsSchema = z.object({
     }),
   seller: z
     .object({
-      legalName: z.string().max(120).default(""),
-      taxId: z.string().max(20).default(""),
-      address: z.string().max(160).default(""),
-      email: z.string().max(120).default(""),
-      dataFiscalUrl: z.string().max(300).default(""),
+      legalName: z
+        .string()
+        .trim()
+        .max(120)
+        .default("")
+        .refine(
+          siLoCargo((texto) => cantidadDeLetras(texto) >= 2),
+          "La razon social lleva letras."
+        ),
+      // El CUIT se imprime en el comprobante: se valida el digito
+      // verificador, no solo que sean once numeros.
+      taxId: z
+        .string()
+        .trim()
+        .max(20)
+        .default("")
+        .refine(
+          siLoCargo(esCuit),
+          "Ese CUIT no es valido. Son 11 numeros y el ultimo tiene que cerrar."
+        ),
+      address: z
+        .string()
+        .trim()
+        .max(160)
+        .default("")
+        .refine(
+          siLoCargo((texto) => cantidadDeLetras(texto) >= 3),
+          "El domicilio lleva calle y altura."
+        ),
+      email: z
+        .string()
+        .trim()
+        .max(120)
+        .default("")
+        .refine(siLoCargo(esEmail), "Ese email no parece valido."),
+      dataFiscalUrl: z
+        .string()
+        .trim()
+        .max(300)
+        .default("")
+        .refine(
+          siLoCargo(esUrlWeb),
+          "El Data Fiscal es un enlace: tiene que empezar con https://"
+        ),
     })
     .optional()
     .default({

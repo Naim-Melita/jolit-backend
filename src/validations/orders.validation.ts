@@ -1,4 +1,11 @@
 import { z } from "zod";
+import {
+  esCodigoPostal,
+  esDireccion,
+  esLocalidad,
+  esNombreDePersona,
+  esTelefono,
+} from "../lib/validaciones.js";
 
 export const orderItemsSchema = z
   .array(
@@ -10,14 +17,42 @@ export const orderItemsSchema = z
   .min(1)
   .max(50);
 
+/** Los opcionales solo se revisan si vienen con algo cargado. */
+const siLoCargo = (valido: (texto: string) => boolean) => (texto: string) =>
+  texto.trim() === "" || valido(texto);
+
 export const orderSchema = z.object({
-  customerName: z.string().min(2, "Ingresa tu nombre."),
-  customerEmail: z.string().email("Reviso el email: no parece valido."),
-  customerPhone: z.string().min(6, "Ingresa un telefono de contacto."),
-  shippingAddress: z.string().optional().default(""),
-  shippingCity: z.string().optional().default(""),
-  shippingPostalCode: z.string().optional().default(""),
-  shippingCountry: z.string().optional().default("Argentina"),
+  customerName: z
+    .string()
+    .trim()
+    .refine(esNombreDePersona, "Ingresa tu nombre y apellido, sin numeros."),
+  customerEmail: z.string().trim().email("Revisa el email: no parece valido."),
+  customerPhone: z
+    .string()
+    .trim()
+    .refine(esTelefono, "Ingresa un telefono con al menos 8 numeros."),
+  shippingAddress: z
+    .string()
+    .trim()
+    .optional()
+    .default("")
+    .refine(siLoCargo(esDireccion), "Ingresa la calle y la altura."),
+  shippingCity: z
+    .string()
+    .trim()
+    .optional()
+    .default("")
+    .refine(siLoCargo(esLocalidad), "Ingresa el nombre de la ciudad."),
+  shippingPostalCode: z
+    .string()
+    .trim()
+    .optional()
+    .default("")
+    .refine(
+      siLoCargo(esCodigoPostal),
+      "El codigo postal va con 4 numeros (1425) o en formato CPA (C1425DYB)."
+    ),
+  shippingCountry: z.string().trim().optional().default("Argentina"),
   // El costo de envio NO se acepta del cliente: se cotiza en el servidor
   // a partir del destino y del subtotal calculado desde la base.
   items: orderItemsSchema,
@@ -44,6 +79,6 @@ export const orderShippingSchema = z.object({
 });
 
 export const orderLookupSchema = z.object({
-  orderNumber: z.string().min(3, "Ingresa el numero de pedido."),
-  contact: z.string().min(3, "Ingresa el email o telefono de la compra."),
+  orderNumber: z.string().trim().min(3, "Ingresa el numero de pedido."),
+  contact: z.string().trim().min(3, "Ingresa el email o telefono de la compra."),
 });
