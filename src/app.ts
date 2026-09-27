@@ -3,7 +3,7 @@ import cors from "cors";
 import express from "express";
 import rateLimit from "express-rate-limit";
 import helmet from "helmet";
-import { errorHandler, notFound } from "./lib/http.js";
+import { HttpError, errorHandler, notFound } from "./lib/http.js";
 import { requireAdminAccess } from "./middlewares/admin.js";
 import { optionalClerkMiddleware } from "./middlewares/clerk.js";
 import { authRouter } from "./routes/auth.js";
@@ -22,7 +22,40 @@ import { subscribersRouter } from "./routes/subscribers.js";
 import { uploadsRouter } from "./routes/uploads.js";
 import { webhooksRouter } from "./routes/webhooks.js";
 
+/**
+ * Los origenes que pueden llamar a la API, con y sin "www".
+ *
+ * Para una persona jolit.com.ar y www.jolit.com.ar son el mismo sitio; para
+ * el navegador son dos origenes distintos. Con uno solo configurado, entrar
+ * por el otro quedaba bloqueado: paso de verdad y no se podia entrar al panel
+ * desde www.
+ *
+ * Solo se agrega esa variante, no cualquier subdominio: es el mismo dominio y
+ * lo controla quien controla el que ya estaba configurado.
+ */
+export function conYSinWww(origenes: string[]) {
+  const todos = new Set<string>();
+
+  for (const origen of origenes) {
+    todos.add(origen);
+
+    try {
+      const url = new URL(origen);
+      const otroHost = url.host.startsWith("www.")
+        ? url.host.slice(4)
+        : `www.${url.host}`;
+
+      todos.add(`${url.protocol}//${otroHost}`);
+    } catch {
+      // Si no es una URL valida queda solo tal cual se escribio.
+    }
+  }
+
+  return todos;
+}
+
 export function createApp() {
+
   const app = express();
 
   // Necesario para que el rate limit vea la IP real detras del proxy
@@ -35,7 +68,7 @@ export function createApp() {
   // El dev server del front se permite solo fuera de produccion. Ahi vale
   // unicamente lo que diga FRONTEND_ORIGIN: no hay motivo para que la API
   // real le conteste a un navegador parado en localhost.
-  const allowedOrigins = new Set([
+  const allowedOrigins = conYSinWww([
     ...configuredOrigins,
     ...(process.env.NODE_ENV === "production"
       ? []
@@ -53,7 +86,16 @@ export function createApp() {
           return;
         }
 
-        callback(new Error("Not allowed by CORS"));
+        // Antes se rechazaba con un Error pelado y el servidor contestaba
+        // 500: en el navegador parecia que la API estaba caida, cuando el
+        // problema era la configuracion.
+        callback(
+          new HttpError(
+            403,
+            "Este sitio no tiene permiso para usar la API.",
+            CODIGOS.SIN_PERMISOS
+          )
+        );
       },
       allowedHeaders: ["Content-Type", "Authorization"],
       methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
