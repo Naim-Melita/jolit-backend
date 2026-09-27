@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { cantidadDeLetras } from "../lib/validaciones.js";
+import { textoOpcional } from "./comunes.js";
 
 export const productSchema = z.object({
   name: z
@@ -9,7 +10,8 @@ export const productSchema = z.object({
       (texto) => cantidadDeLetras(texto) >= 2,
       "El nombre del producto lleva letras."
     ),
-  slug: z.string().min(2).optional(),
+  // Vacio significa "generalo desde el nombre".
+  slug: textoOpcional(2, "El enlace necesita al menos 2 caracteres."),
   sku: z.string().trim().max(40).optional().default(""),
   description: z.string().trim().min(1, "Escribi una descripcion."),
   price: z.coerce

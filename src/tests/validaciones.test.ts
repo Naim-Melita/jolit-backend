@@ -6,7 +6,9 @@ import {
   esNombreDePersona,
   esTelefono,
 } from "../lib/validaciones.js";
+import { categorySchema } from "../validations/categories.validation.js";
 import { orderSchema } from "../validations/orders.validation.js";
+import { productSchema } from "../validations/products.validation.js";
 import { settingsSchema } from "../validations/settings.validation.js";
 
 // Lo que se rompia: los campos solo median largo, asi que un nombre podia ser
@@ -152,5 +154,46 @@ describe("settingsSchema", () => {
     });
 
     assert.equal(resultado.success, false);
+  });
+});
+
+// El panel manda los campos opcionales como cadena vacia. Con `.optional()` a
+// secas eso se rechazaba, asi que no se podia crear una categoria ni un
+// producto sin completar a mano el Slug, que el propio casillero dice que es
+// opcional.
+describe("campos opcionales que llegan vacios", () => {
+  it("acepta una categoria con el slug en blanco", () => {
+    const resultado = categorySchema.safeParse({ name: "Anillos", slug: "" });
+
+    assert.equal(resultado.success, true);
+    // Vacio tiene que llegar como "no vino": el servicio hace
+    // `input.slug ?? slugify(input.name)`, que solo mira undefined.
+    assert.equal(resultado.data?.slug, undefined);
+  });
+
+  it("acepta un producto con el slug en blanco", () => {
+    const resultado = productSchema.safeParse({
+      name: "Aros Perla",
+      slug: "",
+      description: "Aros con perlas.",
+      price: "27999.99",
+      stock: 1,
+      imageUrl: "https://ejemplo.com/foto.jpg",
+      category: "aros",
+    });
+
+    assert.equal(resultado.success, true);
+    assert.equal(resultado.data?.slug, undefined);
+  });
+
+  it("sigue respetando el minimo cuando el slug viene cargado", () => {
+    assert.equal(
+      categorySchema.safeParse({ name: "Anillos", slug: "a" }).success,
+      false
+    );
+    assert.equal(
+      categorySchema.safeParse({ name: "Anillos", slug: "anillos" }).success,
+      true
+    );
   });
 });

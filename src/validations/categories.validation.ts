@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { cantidadDeLetras } from "../lib/validaciones.js";
+import { textoOpcional } from "./comunes.js";
 
 export const categorySchema = z.object({
   name: z
@@ -9,5 +10,6 @@ export const categorySchema = z.object({
       (texto) => cantidadDeLetras(texto) >= 2,
       "El nombre de la categoria lleva letras."
     ),
-  slug: z.string().min(2).optional(),
+  // Vacio significa "generalo desde el nombre".
+  slug: textoOpcional(2, "El enlace necesita al menos 2 caracteres."),
 });
