@@ -5,50 +5,71 @@
 # Se puede correr a mano (./deploy.sh) o lo dispara GitHub al pushear a main.
 # Es idempotente: correrlo dos veces seguidas no rompe nada.
 #
-# Antes de usarlo, ajustar las dos variables de abajo a como esta montado el
-# servidor. Todo lo demas sale del repositorio.
+# La configuracion NO se edita aca. Va en deploy.env, al lado de este archivo,
+# que no esta versionado: este script se actualiza solo con cada despliegue y
+# se llevaria puesto cualquier cambio local.
+#
+#   cp deploy.env.example deploy.env   (y editar deploy.env)
 
 set -euo pipefail
 
-# Carpeta donde esta clonado el repositorio en el servidor.
-APP_DIR="${APP_DIR:-/var/www/jolit-backend}"
+# Todo el trabajo va adentro de una funcion a proposito.
+#
+# Bash lee el script a medida que lo ejecuta, y mas abajo hay un
+# "git reset --hard" que reescribe este mismo archivo. Si el cuerpo estuviera
+# suelto, bash seguiria leyendo desde un desplazamiento dentro del archivo
+# NUEVO y terminaria ejecutando cualquier cosa. Dentro de una funcion, bash
+# parsea todo antes de ejecutar nada y el disco ya no lo afecta.
+main() {
+  local aqui
+  aqui="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# Como se reinicia el proceso. Las dos formas mas comunes:
-#   pm2:      "pm2 restart jolit-api"
-#   systemd:  "sudo systemctl restart jolit-api"
-RESTART_CMD="${RESTART_CMD:-pm2 restart jolit-api}"
+  # shellcheck source=/dev/null
+  [ -f "$aqui/deploy.env" ] && . "$aqui/deploy.env"
 
-echo "==> Carpeta: $APP_DIR"
-cd "$APP_DIR"
+  local APP_DIR="${APP_DIR:-$aqui}"
+  local RESTART_CMD="${RESTART_CMD:-pm2 restart jolit-api}"
+  local HEALTH_URL="${HEALTH_URL:-http://127.0.0.1:4000/api/health}"
 
-echo "==> Bajando los cambios de main"
-git fetch origin main
-git reset --hard origin/main
+  echo "==> Carpeta: $APP_DIR"
+  cd "$APP_DIR"
 
-echo "==> Instalando dependencias"
-npm ci
+  # reset --hard deja el repositorio igual a main. Descarta cambios locales en
+  # archivos versionados; .env y deploy.env no se tocan porque no lo estan.
+  echo "==> Bajando los cambios de main"
+  git fetch origin main
+  git reset --hard origin/main
 
-# Las migraciones van ANTES de levantar el codigo nuevo: si el codigo nuevo
-# espera una columna que todavia no existe, se cae al arrancar.
-echo "==> Aplicando migraciones de base de datos"
-npx prisma migrate deploy
+  echo "==> Instalando dependencias"
+  npm ci
 
-echo "==> Compilando"
-npm run build
+  # Las migraciones van ANTES de levantar el codigo nuevo: si el codigo nuevo
+  # espera una columna que todavia no existe, se cae al arrancar. Si no hay
+  # ninguna pendiente, este comando no hace nada.
+  echo "==> Aplicando migraciones de base de datos"
+  npx prisma migrate deploy
 
-echo "==> Reiniciando el servicio"
-eval "$RESTART_CMD"
+  echo "==> Compilando"
+  npm run build
 
-# Espera a que el proceso levante y confirma que contesta. Si esto falla, el
-# despliegue se marca como fallido en GitHub en vez de quedar en silencio.
-echo "==> Verificando"
-for intento in $(seq 1 15); do
-  if curl -fsS http://127.0.0.1:4000/api/health > /tmp/jolit-health.json 2>/dev/null; then
-    echo "    OK: $(cat /tmp/jolit-health.json)"
-    exit 0
-  fi
-  sleep 2
-done
+  echo "==> Reiniciando el servicio"
+  eval "$RESTART_CMD"
 
-echo "ERROR: la API no contesta despues de 30 segundos." >&2
-exit 1
+  # Espera a que levante y confirma que contesta, para que un despliegue roto
+  # no quede marcado como exitoso.
+  echo "==> Verificando"
+  local intento
+  for intento in $(seq 1 15); do
+    if curl -fsS "$HEALTH_URL" 2>/dev/null; then
+      echo
+      echo "==> Listo"
+      return 0
+    fi
+    sleep 2
+  done
+
+  echo "ERROR: la API no contesta despues de 30 segundos." >&2
+  return 1
+}
+
+main "$@"

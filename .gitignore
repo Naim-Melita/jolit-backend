@@ -8,3 +8,4 @@ uploads/
 
 # graphify (salida generada, no versionar)
 graphify-out/
+deploy.env
