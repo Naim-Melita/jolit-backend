@@ -10,6 +10,10 @@ type ProductWithRelations = {
   category: {
     slug: string;
   };
+  material?: {
+    slug: string;
+    name: string;
+  } | null;
   images: Array<{
     url: string;
     position: number;
@@ -42,6 +46,8 @@ export function toProductResponse(product: ProductWithRelations): Product {
     imageUrl: primaryImage,
     galleryImages: images.map((image) => image.url),
     category: product.category.slug,
+    material: product.material?.slug ?? null,
+    materialName: product.material?.name ?? null,
     featured: product.featured,
   };
 }

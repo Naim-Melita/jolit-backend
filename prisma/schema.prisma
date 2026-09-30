@@ -26,11 +26,34 @@ model Category {
   id        Int       @id @default(autoincrement())
   name      String
   slug      String    @unique
+  /// Las tres letras con las que empieza el codigo de cada pieza de esta
+  /// categoria: ANI-BLA-0001. Unico, porque dos categorias con el mismo
+  /// prefijo harian que el codigo deje de decir que es la pieza.
+  prefix    String    @unique
   products  Product[]
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 
   @@map("categories")
+}
+
+/// De que esta hecha la pieza: plata 925, acero blanco, acero dorado.
+///
+/// Va aparte de la categoria y no dentro del nombre porque una clienta busca
+/// "aros" y despues mira de que material los hay. Con el material metido en
+/// la categoria, la tienda tendria una categoria por combinacion y habria que
+/// recorrerlas una por una.
+model Material {
+  id        Int       @id @default(autoincrement())
+  name      String
+  slug      String    @unique
+  /// Las tres letras del medio del codigo: ARO-BLA-0001.
+  prefix    String    @unique
+  products  Product[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@map("materials")
 }
 
 model Product {
@@ -44,6 +67,10 @@ model Product {
   featured    Boolean        @default(false)
   categoryId  Int
   category    Category       @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  /// Opcional: las piezas cargadas antes de que existiera el material no
+  /// tienen ninguno, y su codigo viejo sigue siendo valido.
+  materialId  Int?
+  material    Material?      @relation(fields: [materialId], references: [id], onDelete: SetNull)
   images      ProductImage[]
   prices      ProductPrice[]
   inventory   Inventory?
@@ -54,6 +81,7 @@ model Product {
   updatedAt   DateTime       @updatedAt
 
   @@index([categoryId])
+  @@index([materialId])
   @@map("products")
 }
 

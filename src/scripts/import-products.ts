@@ -4,7 +4,13 @@ import path from "node:path";
 import { leerCsv } from "../lib/csv.js";
 import { leerPrecio } from "../lib/precio.js";
 import { prisma } from "../lib/prisma.js";
-import { normalizarCodigo, siguienteCodigo } from "../lib/codigoDePieza.js";
+import {
+  normalizarCodigo,
+  prefijoDeCategoria,
+  prefijoDeMaterial,
+  prefijoLibre,
+  siguienteCodigo,
+} from "../lib/codigoDePieza.js";
 import { slugify } from "../lib/slug.js";
 import { uploadImageToCloudinary } from "../services/uploads.service.js";
 
@@ -22,6 +28,7 @@ import { uploadImageToCloudinary } from "../services/uploads.service.js";
  *   precio       obligatorio
  *   stock        obligatorio
  *   categoria    obligatorio, se crea sola si no existe
+ *   material     opcional, se crea solo si no existe (ej. "Acero blanco")
  *   fotos        opcional, varias separadas con |
  *   destacado    opcional, "si" para que aparezca primero
  *
@@ -50,6 +57,8 @@ type Fila = {
   stock: number;
   categoria: string;
   categoriaSlug: string;
+  material: string;
+  materialSlug: string;
   fotos: string[];
   destacado: boolean;
 };
@@ -92,6 +101,8 @@ function interpretarFila(
     errores.push(`el stock "${stockCrudo}" tiene que ser un numero entero`);
   }
 
+  const material = texto("material");
+
   const fotos = texto("fotos")
     .split("|")
     .map((f) => f.trim())
@@ -115,6 +126,8 @@ function interpretarFila(
       stock,
       categoria,
       categoriaSlug: slugify(categoria),
+      material,
+      materialSlug: material ? slugify(material) : "",
       fotos,
       destacado,
     },
@@ -164,31 +177,77 @@ async function resolverFotos(
 
 /**
  * Codigo de la pieza: el de la planilla si lo trae, o uno correlativo de la
- * categoria. Con cien filas, dejar que se generen solos evita repetidos.
+ * serie (categoria + material). Con cien filas, dejar que se generen solos
+ * evita repetidos.
  */
-async function codigoParaLaFila(fila: Fila, categoria: { id: number; name: string }) {
+async function codigoParaLaFila(
+  fila: Fila,
+  categoria: { id: number; prefix: string },
+  material: { id: number; prefix: string } | null
+) {
   if (fila.codigo) return normalizarCodigo(fila.codigo);
 
   const existentes = await prisma.product.findMany({
-    where: { categoryId: categoria.id, sku: { not: null } },
+    where: {
+      categoryId: categoria.id,
+      materialId: material?.id ?? null,
+      sku: { not: null },
+    },
     select: { sku: true },
   });
 
-  return siguienteCodigo(categoria.name, existentes.map((p) => p.sku as string));
+  return siguienteCodigo(
+    categoria.prefix,
+    material?.prefix ?? null,
+    existentes.map((p) => p.sku as string)
+  );
 }
 
-async function guardarProducto(fila: Fila, urls: string[]) {
+/**
+ * Un prefijo libre para una categoria o un material que la planilla crea al
+ * pasar. Mira los que ya existen para no repetir: dos series con el mismo
+ * prefijo harian que el codigo deje de decir que es la pieza.
+ */
+async function prefijoLibreDeCategoria(nombre: string) {
+  const tomados = await prisma.category.findMany({ select: { prefix: true } });
+  return prefijoLibre(prefijoDeCategoria(nombre), tomados.map((c) => c.prefix));
+}
+
+async function prefijoLibreDeMaterial(nombre: string) {
+  const tomados = await prisma.material.findMany({ select: { prefix: true } });
+  return prefijoLibre(prefijoDeMaterial(nombre), tomados.map((m) => m.prefix));
+}
+
+async function guardarProducto(
+fila: Fila, urls: string[]) {
   const categoria = await prisma.category.upsert({
     where: { slug: fila.categoriaSlug },
-    create: { slug: fila.categoriaSlug, name: fila.categoria },
+    create: {
+      slug: fila.categoriaSlug,
+      name: fila.categoria,
+      prefix: await prefijoLibreDeCategoria(fila.categoria),
+    },
     update: {},
   });
+
+  const material = fila.materialSlug
+    ? await prisma.material.upsert({
+        where: { slug: fila.materialSlug },
+        create: {
+          slug: fila.materialSlug,
+          name: fila.material,
+          prefix: await prefijoLibreDeMaterial(fila.material),
+        },
+        update: {},
+      })
+    : null;
 
   const producto = await prisma.product.upsert({
     where: { slug: fila.slug },
     create: {
       slug: fila.slug,
-      sku: await codigoParaLaFila(fila, categoria),
+      sku: await codigoParaLaFila(fila, categoria, material),
+      materialId: material?.id ?? null,
       name: fila.nombre,
       description: fila.descripcion,
       featured: fila.destacado,

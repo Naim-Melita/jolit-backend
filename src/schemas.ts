@@ -5,3 +5,4 @@ export * from "./validations/products.validation.js";
 export * from "./validations/settings.validation.js";
 export * from "./validations/shipping.validation.js";
 export * from "./validations/subscribers.validation.js";
+export * from "./validations/materials.validation.js";

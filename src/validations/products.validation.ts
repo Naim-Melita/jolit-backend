@@ -24,6 +24,8 @@ export const productSchema = z.object({
   imageUrl: z.url("La foto principal tiene que ser un enlace."),
   galleryImages: z.array(z.url("Cada foto tiene que ser un enlace.")).optional().default([]),
   category: z.string().trim().min(2),
+  // Opcional: una pieza puede no tener material cargado.
+  material: textoOpcional(1, "Elegi un material de la lista."),
   featured: z.coerce.boolean().optional().default(false),
 });
 

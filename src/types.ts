@@ -16,6 +16,10 @@ export type Product = {
   imageUrl: string;
   galleryImages: string[];
   category: string;
+  /** Enlace del material, o null si la pieza no tiene uno cargado. */
+  material: string | null;
+  /** El nombre para mostrar: "Acero blanco". */
+  materialName: string | null;
   featured: boolean;
 };
 

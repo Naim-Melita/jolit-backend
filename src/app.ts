@@ -10,6 +10,7 @@ import { optionalClerkMiddleware } from "./middlewares/clerk.js";
 import { authRouter } from "./routes/auth.js";
 import { cartRouter } from "./routes/cart.js";
 import { categoriesRouter } from "./routes/categories.js";
+import { materialsRouter } from "./routes/materials.js";
 import { customersRouter } from "./routes/customers.js";
 import { favoritesRouter } from "./routes/favorites.js";
 import { healthRouter } from "./routes/health.js";
@@ -106,6 +107,7 @@ export function createApp() {
   app.use("/api/health", healthRouter);
   app.use("/api/auth", authRateLimit, authRouter);
   app.use("/api/categories", categoriesRouter);
+  app.use("/api/materials", materialsRouter);
   app.use("/api/products", productsRouter);
   app.use("/api/customers", customersRouter);
   app.use("/api/cart", cartRouter);

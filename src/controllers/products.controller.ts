@@ -12,11 +12,12 @@ import {
 
 export async function getProducts(req: Request, res: Response) {
   const category = String(req.query.category ?? "");
+  const material = String(req.query.material ?? "");
   const search = String(req.query.search ?? "");
 
   const { limit, cursor } = leerPaginacion(req.query);
 
-  res.json(await listProducts({ category, search, limit, cursor }));
+  res.json(await listProducts({ category, material, search, limit, cursor }));
 }
 
 export async function getProduct(req: Request, res: Response) {

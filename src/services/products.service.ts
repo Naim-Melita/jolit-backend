@@ -14,7 +14,10 @@ type UpdateProductInput = z.infer<typeof updateProductSchema>;
 
 const productInclude = {
   category: {
-    select: { slug: true },
+    select: { slug: true, name: true, prefix: true },
+  },
+  material: {
+    select: { slug: true, name: true, prefix: true },
   },
   images: {
     select: {
@@ -39,7 +42,7 @@ const productInclude = {
 const PRODUCTOS_POR_PAGINA = 24;
 const MAX_PRODUCTOS_POR_PAGINA = 100;
 
-type Filtros = { category?: string; search?: string };
+type Filtros = { category?: string; search?: string; material?: string };
 
 /** Las dos tandas en las que se parte el catalogo. */
 type Tanda = "con" | "sin";
@@ -52,11 +55,16 @@ type Tanda = "con" | "sin";
  */
 function dondeBuscar(filtros: Filtros, tanda: Tanda) {
   const category = filtros.category ?? "";
+  const material = filtros.material ?? "";
   const search = filtros.search?.trim() ?? "";
   const condiciones = [];
 
   if (category && category !== "todos") {
     condiciones.push({ category: { slug: category } });
+  }
+
+  if (material && material !== "todos") {
+    condiciones.push({ material: { slug: material } });
   }
 
   if (search) {
@@ -144,6 +152,7 @@ async function tandaDelCursor(cursor?: number): Promise<Tanda> {
  */
 export async function listProducts(filters: {
   category?: string;
+  material?: string;
   search?: string;
   limit?: number;
   cursor?: number;
@@ -231,22 +240,57 @@ export async function getProduct(identificador: string): Promise<Product> {
 
 
 /**
- * Codigo de la pieza. Si no viene cargado a mano, se genera uno correlativo
- * dentro de la categoria: con cien piezas, inventarlos de a uno es tedioso y
- * es donde se cuelan los repetidos.
+ * Codigo de la pieza.
+ *
+ * Si viene cargado a mano se respeta. Si no, se genera uno correlativo dentro
+ * de la serie, que es el par categoria + material: con cien piezas,
+ * inventarlos de a uno es tedioso y es donde se cuelan los repetidos.
+ *
+ * Se miran los codigos de la misma serie, no los de toda la categoria: los
+ * aros de plata y los de acero llevan numeracion propia.
  */
-async function resolverCodigo(categoriaNombre: string, categoriaId: number, pedido?: string) {
+async function resolverCodigo(
+  categoria: { id: number; prefix: string },
+  material: { id: number; prefix: string } | null,
+  pedido?: string
+) {
   if (pedido?.trim()) return normalizarCodigo(pedido);
 
   const existentes = await prisma.product.findMany({
-    where: { categoryId: categoriaId, sku: { not: null } },
+    where: {
+      categoryId: categoria.id,
+      materialId: material?.id ?? null,
+      sku: { not: null },
+    },
     select: { sku: true },
   });
 
   return siguienteCodigo(
-    categoriaNombre,
+    categoria.prefix,
+    material?.prefix ?? null,
     existentes.map((p) => p.sku as string)
   );
+}
+
+/**
+ * El material que pide la entrada, o null si no pidio ninguno.
+ *
+ * Es opcional: las piezas cargadas antes de que existieran los materiales no
+ * tienen, y se pueden seguir cargando sin uno.
+ */
+async function buscarMaterial(slug?: string | null) {
+  if (!slug?.trim()) return null;
+
+  const material = await prisma.material.findUnique({
+    where: { slug: slug.trim() },
+    select: { id: true, prefix: true },
+  });
+
+  if (!material) {
+    throw badRequest("Ese material no existe.", CODIGOS.MATERIAL_NO_ENCONTRADO);
+  }
+
+  return material;
 }
 
 export async function createProduct(input: ProductInput): Promise<Product> {
@@ -265,12 +309,14 @@ export async function createProduct(input: ProductInput): Promise<Product> {
     throw badRequest("Ya hay un producto con ese enlace.", CODIGOS.SLUG_DUPLICADO);
   }
 
-  const sku = await resolverCodigo(category.name, category.id, input.sku);
+  const material = await buscarMaterial(input.material);
+  const sku = await resolverCodigo(category, material, input.sku);
 
   const product = await prisma.product.create({
     data: {
       slug,
       sku,
+      materialId: material?.id ?? null,
       name: input.name,
       description: input.description,
       featured: input.featured,
@@ -321,6 +367,11 @@ export async function updateProduct(
 
   if (!current) throw notFound("No encontramos ese producto.", CODIGOS.PRODUCTO_NO_ENCONTRADO);
 
+  const material =
+    input.material === undefined
+      ? undefined
+      : await buscarMaterial(input.material);
+
   const nextCategorySlug = input.category ?? current.category.slug;
   const category = await prisma.category.findUnique({
     where: { slug: nextCategorySlug },
@@ -355,6 +406,7 @@ export async function updateProduct(
       data: {
         slug: nextSlug,
         sku: input.sku !== undefined ? input.sku || null : undefined,
+        materialId: material === undefined ? undefined : material?.id ?? null,
         name: input.name ?? current.name,
         description: input.description ?? current.description,
         featured: input.featured ?? current.featured,

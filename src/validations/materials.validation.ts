@@ -2,17 +2,16 @@ import { z } from "zod";
 import { cantidadDeLetras } from "../lib/validaciones.js";
 import { textoOpcional } from "./comunes.js";
 
-export const categorySchema = z.object({
+export const materialSchema = z.object({
   name: z
     .string()
     .trim()
     .refine(
       (texto) => cantidadDeLetras(texto) >= 2,
-      "El nombre de la categoria lleva letras."
+      "El nombre del material lleva letras."
     ),
-  // Vacio significa "generalo desde el nombre".
   slug: textoOpcional(2, "El enlace necesita al menos 2 caracteres."),
-  // Tres letras con las que empiezan los codigos de sus piezas: ANI-BLA-0001.
-  // Si no se carga, sale del nombre.
+  // Tres letras del medio del codigo: ARO-BLA-0001. Si no se carga, sale del
+  // nombre, mirando su ultima palabra.
   prefix: textoOpcional(2, "El prefijo lleva al menos 2 letras."),
 });

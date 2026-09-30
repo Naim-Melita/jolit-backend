@@ -50,7 +50,7 @@ before(async () => {
     categoryId = categoria.id;
   } else {
     const nueva = await prisma.category.create({
-      data: { slug: "zz-prueba", name: "Prueba" },
+      data: { slug: "zz-prueba", name: "Prueba", prefix: "ZZP" },
     });
     categoryId = nueva.id;
     categoriaCreada = true;
