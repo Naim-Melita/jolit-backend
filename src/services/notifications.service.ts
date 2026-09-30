@@ -1,4 +1,8 @@
 import { escapeHtml, sendEmail } from "../lib/email.js";
+import {
+  fotoDeAncho,
+  ANCHO_MINIATURA_CORREO,
+} from "../lib/imagenes.js";
 import type { Order, StoreSettings } from "../types.js";
 import { orderLookupUrl } from "./emailCopy.js";
 import { buildOrderReceiptPdf, receiptFileName } from "./receipt.service.js";
@@ -23,7 +27,9 @@ function itemRows(order: Order) {
   return order.items
     .map((item) => {
       const foto = item.imageUrl
-        ? `<img src="${escapeHtml(item.imageUrl)}" alt="" width="56" height="56"
+        ? `<img src="${escapeHtml(
+            fotoDeAncho(item.imageUrl, ANCHO_MINIATURA_CORREO)
+          )}" alt="" width="56" height="56"
              style="display:block;width:56px;height:56px;object-fit:cover;border-radius:6px;border:1px solid #f3e8ee;">`
         : "";
 
