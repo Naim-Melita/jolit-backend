@@ -52,6 +52,8 @@ export const CODIGOS = {
   CONFLICTO: "CONFLICTO",
   SERVICIO_EXTERNO: "SERVICIO_EXTERNO",
   SERVICIO_NO_DISPONIBLE: "SERVICIO_NO_DISPONIBLE",
+  /** Se pidio demasiado seguido y el servidor pide esperar. */
+  DEMASIADAS_PETICIONES: "DEMASIADAS_PETICIONES",
   ERROR_INTERNO: "ERROR_INTERNO",
   RUTA_NO_ENCONTRADA: "RUTA_NO_ENCONTRADA",
 } as const;
@@ -75,6 +77,8 @@ export function codigoPorDefecto(status: number): CodigoDeError {
       return CODIGOS.VALIDACION;
     case 502:
       return CODIGOS.SERVICIO_EXTERNO;
+    case 429:
+      return CODIGOS.DEMASIADAS_PETICIONES;
     case 503:
       return CODIGOS.SERVICIO_NO_DISPONIBLE;
     default:

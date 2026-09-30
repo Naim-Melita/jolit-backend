@@ -110,12 +110,32 @@ export function createApp() {
     standardHeaders: true,
     legacyHeaders: false,
   });
+  /**
+   * Subida de fotos.
+   *
+   * Veinte cada quince minutos alcanzaba para retocar un producto suelto,
+   * pero no para cargar el catalogo: con cien piezas, y varias fotos cada
+   * una, se trababa a los pocos minutos y habia que esperar sin saber por
+   * que.
+   *
+   * Doscientas dan varias veces lo que una persona puede cargar a mano en
+   * ese rato, porque cada producto lleva completar su formulario, y siguen
+   * poniendo un techo a quien quiera abusar del endpoint. La carga masiva no
+   * pasa por aca: el importador sube directo a Cloudinary.
+   */
   const uploadRateLimit = rateLimit({
     windowMs: 15 * 60 * 1000,
-    limit: 20,
+    limit: 200,
     standardHeaders: true,
     legacyHeaders: false,
+    // Sin esto contestaba el texto en ingles de la libreria.
+    message: {
+      error:
+        "Subiste muchas fotos seguidas. Espera unos minutos y segui, o usa la carga por planilla.",
+      code: CODIGOS.DEMASIADAS_PETICIONES,
+    },
   });
+
 
   app.use("/api/health", healthRouter);
   app.use("/api/auth", authRateLimit, authRouter);
