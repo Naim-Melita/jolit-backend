@@ -2,6 +2,7 @@ import { CODIGOS } from "../lib/errorCodes.js";
 import { clerkClient, clerkMiddleware, getAuth } from "@clerk/express";
 import type { NextFunction, Request, Response } from "express";
 import { HttpError } from "../lib/http.js";
+import { conYSinWww, origenesConfigurados } from "../lib/origenes.js";
 
 export function isClerkConfigured() {
   return Boolean(process.env.CLERK_PUBLISHABLE_KEY && process.env.CLERK_SECRET_KEY);
@@ -22,12 +23,34 @@ export function isClerkConfigured() {
  */
 const TOLERANCIA_DE_RELOJ_MS = 30_000;
 
+/**
+ * Desde que sitios aceptamos una sesion de Clerk.
+ *
+ * Es la misma lista que la de CORS. Clerk lo pide explicitamente
+ * (authorizedParties): sin esto, si alguna vez se compromete otra aplicacion
+ * en un subdominio de jolit.com.ar, esa aplicacion podria emitir sesiones
+ * validas para la tienda. Tambien es la defensa contra CSRF que recomienda su
+ * documentacion.
+ *
+ * Si no hay ninguno configurado se devuelve undefined, que es como venia
+ * funcionando: en desarrollo no hay dominio que restringir.
+ */
+function sitiosAutorizados() {
+  const origenes = [...conYSinWww(origenesConfigurados())];
+
+  return origenes.length > 0 ? origenes : undefined;
+}
+
 export function optionalClerkMiddleware() {
+
   if (!isClerkConfigured()) {
     return (_req: Request, _res: Response, next: NextFunction) => next();
   }
 
-  return clerkMiddleware({ clockSkewInMs: TOLERANCIA_DE_RELOJ_MS });
+  return clerkMiddleware({
+    clockSkewInMs: TOLERANCIA_DE_RELOJ_MS,
+    authorizedParties: sitiosAutorizados(),
+  });
 }
 
 export function requireAuth(req: Request, _res: Response, next: NextFunction) {

@@ -18,7 +18,8 @@
     "admin:set": "tsx src/scripts/set-admin.ts",
     "test": "node --import tsx --test src/tests/*.test.ts",
     "email:check": "tsx src/scripts/check-email.ts",
-    "productos:importar": "tsx src/scripts/import-products.ts"
+    "productos:importar": "tsx src/scripts/import-products.ts",
+    "clerk:check": "tsx src/scripts/check-clerk.ts"
   },
   "dependencies": {
     "@clerk/express": "^2.1.22",

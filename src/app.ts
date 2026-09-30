@@ -1,4 +1,5 @@
 import { CODIGOS } from "./lib/errorCodes.js";
+import { conYSinWww, origenesConfigurados } from "./lib/origenes.js";
 import cors from "cors";
 import express from "express";
 import rateLimit from "express-rate-limit";
@@ -22,38 +23,6 @@ import { subscribersRouter } from "./routes/subscribers.js";
 import { uploadsRouter } from "./routes/uploads.js";
 import { webhooksRouter } from "./routes/webhooks.js";
 
-/**
- * Los origenes que pueden llamar a la API, con y sin "www".
- *
- * Para una persona jolit.com.ar y www.jolit.com.ar son el mismo sitio; para
- * el navegador son dos origenes distintos. Con uno solo configurado, entrar
- * por el otro quedaba bloqueado: paso de verdad y no se podia entrar al panel
- * desde www.
- *
- * Solo se agrega esa variante, no cualquier subdominio: es el mismo dominio y
- * lo controla quien controla el que ya estaba configurado.
- */
-export function conYSinWww(origenes: string[]) {
-  const todos = new Set<string>();
-
-  for (const origen of origenes) {
-    todos.add(origen);
-
-    try {
-      const url = new URL(origen);
-      const otroHost = url.host.startsWith("www.")
-        ? url.host.slice(4)
-        : `www.${url.host}`;
-
-      todos.add(`${url.protocol}//${otroHost}`);
-    } catch {
-      // Si no es una URL valida queda solo tal cual se escribio.
-    }
-  }
-
-  return todos;
-}
-
 export function createApp() {
 
   const app = express();
@@ -61,10 +30,7 @@ export function createApp() {
   // Necesario para que el rate limit vea la IP real detras del proxy
   // de Vercel / Render / Railway y no limite a todo el mundo junto.
   app.set("trust proxy", 1);
-  const configuredOrigins = (process.env.FRONTEND_ORIGIN ?? "")
-    .split(",")
-    .map((origin) => origin.trim())
-    .filter(Boolean);
+  const configuredOrigins = origenesConfigurados();
   // El dev server del front se permite solo fuera de produccion. Ahi vale
   // unicamente lo que diga FRONTEND_ORIGIN: no hay motivo para que la API
   // real le conteste a un navegador parado en localhost.

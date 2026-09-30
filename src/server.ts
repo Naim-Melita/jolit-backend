@@ -2,6 +2,7 @@ import "dotenv/config";
 import { createApp } from "./app.js";
 import { assertAdminAuthConfig } from "./lib/adminAuth.js";
 import { warnIfNotConfigured } from "./lib/mercadopago.js";
+import { avisarSiClerkEsDeDesarrollo } from "./lib/clerkEntorno.js";
 import {
   startOrderMaintenance,
   startPaymentReconciliation,
@@ -27,4 +28,5 @@ app.listen(port, host, () => {
   startOrderMaintenance();
   startPaymentReconciliation();
   warnIfNotConfigured();
+  avisarSiClerkEsDeDesarrollo();
 });

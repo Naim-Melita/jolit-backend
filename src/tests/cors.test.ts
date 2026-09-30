@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { conYSinWww } from "../app.js";
+import { conYSinWww } from "../lib/origenes.js";
 
 // Lo que paso: FRONTEND_ORIGIN tenia https://jolit.com.ar y entrar al panel
 // por https://www.jolit.com.ar quedaba bloqueado. Los dos sirven el sitio, no
@@ -47,5 +47,28 @@ describe("conYSinWww", () => {
 
     assert.equal(permitidos.has("jolit.com.ar"), true);
     assert.equal(permitidos.has("https://www.jolit.com.ar"), true);
+  });
+});
+
+// "www.localhost" no existe, y tampoco "www.127.0.0.1". Ensuciaban la lista
+// de origenes autorizados sin agregar nada.
+describe("variantes que no corresponden", () => {
+  it("no inventa www para localhost ni para una IP", () => {
+    const permitidos = conYSinWww([
+      "http://localhost:5173",
+      "http://127.0.0.1:5173",
+    ]);
+
+    assert.deepEqual(
+      [...permitidos].sort(),
+      ["http://127.0.0.1:5173", "http://localhost:5173"]
+    );
+  });
+
+  it("sigue agregandola para un dominio de verdad", () => {
+    assert.equal(
+      conYSinWww(["https://jolit.com.ar"]).has("https://www.jolit.com.ar"),
+      true
+    );
   });
 });
