@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+import { MulterError } from "multer";
 import { z } from "zod";
 import { CODIGOS, codigoPorDefecto } from "../lib/errorCodes.js";
 import { badRequest, errorHandler, HttpError, notFound } from "../lib/http.js";
@@ -181,5 +182,24 @@ describe("los mensajes que ve una clienta estan en castellano", () => {
     );
 
     assert.ok(enCastellano(body.error), body.error);
+  });
+});
+
+// Una foto que pasa el tope caia en el 500 generico. Como el navegador seguia
+// mandando el archivo, lo que se veia era ERR_CONNECTION_RESET y no habia
+// forma de saber que el problema era el peso.
+describe("archivo demasiado pesado", () => {
+  it("contesta 413 con un mensaje que se entiende", () => {
+    const respuesta = manejar(new MulterError("LIMIT_FILE_SIZE", "image"));
+
+    assert.equal(respuesta.status, 413);
+    assert.match(respuesta.body.error, /demasiado pesada/i);
+    assert.equal(respuesta.body.code, CODIGOS.IMAGEN_INVALIDA);
+  });
+
+  it("otros problemas del archivo dan 400, no 500", () => {
+    const respuesta = manejar(new MulterError("LIMIT_UNEXPECTED_FILE", "image"));
+
+    assert.equal(respuesta.status, 400);
   });
 });

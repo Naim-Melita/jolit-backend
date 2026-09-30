@@ -1,5 +1,6 @@
 import type { NextFunction, Request, Response } from "express";
 import { Prisma } from "../generated/prisma/client.js";
+import { MulterError } from "multer";
 import { ZodError } from "zod";
 import { CODIGOS, codigoPorDefecto, type CodigoDeError } from "./errorCodes.js";
 
@@ -77,6 +78,23 @@ export function errorHandler(
 
   if (error instanceof HttpError) {
     return responder(res, error.status, error.code, error.message);
+  }
+
+  // Multer corta la subida cuando el archivo pasa el tope. Sin esto caia en
+  // el 500 generico, y como el navegador todavia estaba mandando el archivo
+  // lo que se veia era ERR_CONNECTION_RESET, que no explica nada.
+  if (error instanceof MulterError) {
+    const mensaje =
+      error.code === "LIMIT_FILE_SIZE"
+        ? "La foto es demasiado pesada. El maximo son 5 MB."
+        : "No pudimos leer el archivo que subiste.";
+
+    return responder(
+      res,
+      error.code === "LIMIT_FILE_SIZE" ? 413 : 400,
+      CODIGOS.IMAGEN_INVALIDA,
+      mensaje
+    );
   }
 
   if (error instanceof Prisma.PrismaClientKnownRequestError) {
