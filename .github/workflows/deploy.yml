@@ -1,0 +1,63 @@
+# Despliegue automatico de la API.
+#
+# Al pushear a main revisa el codigo y, si pasa, entra por SSH al servidor y
+# corre ./deploy.sh. Mientras no esten cargados los secretos queda inactivo y
+# lo avisa, asi que tener este archivo en el repositorio no dispara nada.
+name: Desplegar API
+
+on:
+  push:
+    branches: [main]
+  # Permite lanzarlo a mano desde la pestania Actions de GitHub.
+  workflow_dispatch:
+
+concurrency:
+  # Dos despliegues a la vez sobre la misma carpeta se pisan: si se pushea dos
+  # veces seguidas, va la ultima y se cancela la anterior.
+  group: deploy-api
+  cancel-in-progress: true
+
+jobs:
+  revisar:
+    name: Revisar antes de desplegar
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # El cliente de Prisma no se versiona, asi que hay que generarlo antes
+      # de compilar. No necesita conexion a la base.
+      - run: npx prisma generate
+      # Tipos, pruebas y compilacion. Si algo falla, no se despliega.
+      - run: npm run verify
+
+  desplegar:
+    name: Desplegar en el servidor
+    needs: revisar
+    runs-on: ubuntu-latest
+    env:
+      SSH_HOST: ${{ secrets.SSH_HOST }}
+    steps:
+      - name: Avisar si faltan los secretos
+        if: env.SSH_HOST == ''
+        run: |
+          echo "::warning::Falta cargar SSH_HOST, SSH_USER y SSH_KEY en"
+          echo "::warning::Settings > Secrets and variables > Actions."
+          echo "::warning::Hasta entonces el despliegue no corre."
+
+      - name: Desplegar por SSH
+        if: env.SSH_HOST != ''
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.SSH_PORT || 22 }}
+          # Corta el despliegue en el primer comando que falle.
+          script_stop: true
+          script: |
+            cd ${{ secrets.APP_DIR || '/var/www/jolit-backend' }}
+            ./deploy.sh
