@@ -2,7 +2,12 @@ import { armarPagina, resolverLimite, type Pagina } from "../lib/paginacion.js";
 import { CODIGOS } from "../lib/errorCodes.js";
 import { badRequest, notFound } from "../lib/http.js";
 import { prisma } from "../lib/prisma.js";
-import { normalizarCodigo, siguienteCodigo } from "../lib/codigoDePieza.js";
+import {
+  normalizarCodigo,
+  numeroDeCodigo,
+  serieDe,
+  siguienteCodigo,
+} from "../lib/codigoDePieza.js";
 import { slugify } from "../lib/slug.js";
 import { toProductResponse } from "../mappers/productMapper.js";
 import type { Product } from "../types.js";
@@ -350,14 +355,65 @@ export async function createProduct(input: ProductInput): Promise<Product> {
   return toProductResponse(product);
 }
 
+/**
+ * El codigo que le corresponde a la pieza despues de un cambio.
+ *
+ * Si se movio de categoria o de material, el codigo que tenia quedo mintiendo:
+ * unos aros movidos desde Anillos seguian diciendo ANI-0002. Cuando ese
+ * codigo es uno de los que generamos nosotros para la serie vieja, se rehace
+ * para la nueva.
+ *
+ * Lo que se cargo a mano NO se toca, ni aunque no tenga nuestro formato: si
+ * alguien escribio el codigo de su proveedor, es porque quiere ese.
+ */
+async function codigoDespuesDelCambio(
+  id: number,
+  pedido: string | null | undefined,
+  antes: { prefijoCategoria: string; prefijoMaterial?: string | null; sku: string | null },
+  ahora: { categoria: { id: number; prefix: string }; material: { id: number; prefix: string } | null }
+) {
+  // Lo que manda quien edita gana siempre.
+  if (pedido !== undefined) return pedido || null;
+
+  const serieVieja = serieDe(antes.prefijoCategoria, antes.prefijoMaterial);
+  const serieNueva = serieDe(ahora.categoria.prefix, ahora.material?.prefix);
+
+  if (serieVieja === serieNueva) return undefined;
+
+  // Solo se rehace si el codigo de ahora es de la serie vieja y lo generamos
+  // nosotros. Si es null, tambien: la pieza quedo sin codigo y le toca uno.
+  const esNuestro =
+    antes.sku === null || numeroDeCodigo(antes.sku, serieVieja) !== null;
+
+  if (!esNuestro) return undefined;
+
+  const existentes = await prisma.product.findMany({
+    where: {
+      id: { not: id },
+      categoryId: ahora.categoria.id,
+      materialId: ahora.material?.id ?? null,
+      sku: { not: null },
+    },
+    select: { sku: true },
+  });
+
+  return siguienteCodigo(
+    ahora.categoria.prefix,
+    ahora.material?.prefix ?? null,
+    existentes.map((p) => p.sku as string)
+  );
+}
+
 export async function updateProduct(
+
   id: number,
   input: UpdateProductInput
 ): Promise<Product> {
   const current = await prisma.product.findUnique({
     where: { id },
     include: {
-      category: { select: { slug: true } },
+      category: { select: { slug: true, prefix: true } },
+      material: { select: { slug: true, prefix: true } },
       images: {
         select: { url: true, position: true, isPrimary: true },
         orderBy: { position: "asc" },
@@ -405,7 +461,24 @@ export async function updateProduct(
       where: { id },
       data: {
         slug: nextSlug,
-        sku: input.sku !== undefined ? input.sku || null : undefined,
+        sku: await codigoDespuesDelCambio(
+          id,
+          input.sku,
+          {
+            prefijoCategoria: current.category.prefix,
+            prefijoMaterial: current.material?.prefix,
+            sku: current.sku,
+          },
+          {
+            categoria: category,
+            material:
+              material === undefined
+                ? current.material
+                  ? { id: current.materialId as number, prefix: current.material.prefix }
+                  : null
+                : material,
+          }
+        ),
         materialId: material === undefined ? undefined : material?.id ?? null,
         name: input.name ?? current.name,
         description: input.description ?? current.description,
