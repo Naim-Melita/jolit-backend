@@ -20,7 +20,8 @@
     "email:check": "tsx src/scripts/check-email.ts",
     "productos:importar": "tsx src/scripts/import-products.ts",
     "clerk:check": "tsx src/scripts/check-clerk.ts",
-    "codigos:reiniciar": "tsx src/scripts/renumber-codes.ts"
+    "codigos:reiniciar": "tsx src/scripts/renumber-codes.ts",
+    "respaldo": "tsx src/scripts/backup-db.ts"
   },
   "dependencies": {
     "@clerk/express": "^2.1.22",
