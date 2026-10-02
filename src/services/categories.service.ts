@@ -48,9 +48,25 @@ async function resolverPrefijo(nombre: string, pedido?: string, exceptoId?: numb
   );
 }
 
-export async function createCategory(input: CategoryInput) {
+/**
+ * El enlace, siempre en formato de enlace.
+ *
+ * Lo que se carga a mano se normaliza igual que si saliera del nombre. El
+ * campo es libre y en la tienda alguien escribio "Acero Blanco" ahi: quedo
+ * una categoria AROS cuyo enlace tenia una mayuscula y un espacio. Anda,
+ * porque el navegador lo codifica, pero deja URLs como
+ * ?category=Acero%20Blanco y se rompe apenas alguien arma el enlace a mano.
+ *
+ * Si lo escrito no deja ninguna letra ni numero, se usa el nombre.
+ */
+function resolverSlug(nombre: string, pedido?: string | null) {
+  const aMano = pedido?.trim() ? slugify(pedido) : "";
 
-  const slug = input.slug ?? slugify(input.name);
+  return aMano || slugify(nombre);
+}
+
+export async function createCategory(input: CategoryInput) {
+  const slug = resolverSlug(input.name, input.slug);
   const slugTaken = await prisma.category.findUnique({ where: { slug } });
 
   if (slugTaken) {
@@ -77,7 +93,10 @@ export async function updateCategory(id: number, input: UpdateCategoryInput) {
 
   if (!category) throw notFound("No encontramos esa categoría.", CODIGOS.CATEGORIA_NO_ENCONTRADA);
 
-  const nextSlug = input.slug ?? (input.name ? slugify(input.name) : category.slug);
+  const nextSlug =
+    input.slug !== undefined || input.name !== undefined
+      ? resolverSlug(input.name ?? category.name, input.slug)
+      : category.slug;
   const slugTaken = await prisma.category.findFirst({
     where: {
       id: { not: id },

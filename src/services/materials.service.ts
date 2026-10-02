@@ -49,8 +49,20 @@ async function resolverPrefijo(nombre: string, pedido?: string, exceptoId?: numb
   );
 }
 
+/**
+ * El enlace, siempre en formato de enlace.
+ *
+ * Lo mismo que en las categorias: el campo es libre y lo que se escribe a
+ * mano se normaliza, para que no queden enlaces con mayusculas ni espacios.
+ */
+function resolverSlug(nombre: string, pedido?: string | null) {
+  const aMano = pedido?.trim() ? slugify(pedido) : "";
+
+  return aMano || slugify(nombre);
+}
+
 export async function createMaterial(input: MaterialInput) {
-  const slug = input.slug ?? slugify(input.name);
+  const slug = resolverSlug(input.name, input.slug);
   const slugTaken = await prisma.material.findUnique({ where: { slug } });
 
   if (slugTaken) {
@@ -74,7 +86,10 @@ export async function updateMaterial(id: number, input: UpdateMaterialInput) {
     throw notFound("No encontramos ese material.", CODIGOS.MATERIAL_NO_ENCONTRADO);
   }
 
-  const nextSlug = input.slug ?? (input.name ? slugify(input.name) : material.slug);
+  const nextSlug =
+    input.slug !== undefined || input.name !== undefined
+      ? resolverSlug(input.name ?? material.name, input.slug)
+      : material.slug;
   const slugTaken = await prisma.material.findFirst({
     where: { id: { not: id }, slug: nextSlug },
   });
