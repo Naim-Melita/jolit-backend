@@ -98,7 +98,7 @@ export function startPaymentReconciliation(
 ) {
   const run = () => {
     reconcilePendingPayments().catch((error) =>
-      console.error("Fallo la reconciliacion de pagos", error)
+      console.error("Fallo la reconciliación de pagos", error)
     );
   };
 
@@ -118,7 +118,7 @@ export function startOrderMaintenance(intervalMs = 60 * 60 * 1000) {
           console.log(`Pedidos pendientes expirados: ${count}`);
         }
       })
-      .catch((error) => console.error("Fallo la expiracion de pedidos", error));
+      .catch((error) => console.error("Fallo la expiración de pedidos", error));
   };
 
   run();
@@ -167,7 +167,7 @@ export async function reconcilePendingPayments() {
       if (resultado.paid) {
         aplicados += 1;
         console.log(
-          `Reconciliacion: el pedido ${order.orderNumber} estaba pagado y no nos habiamos enterado.`
+          `Reconciliación: el pedido ${order.orderNumber} estaba pagado y no nos habiamos enterado.`
         );
       }
     } catch (error) {

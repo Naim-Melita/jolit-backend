@@ -43,7 +43,7 @@ export function avisarSiClerkEsDeDesarrollo({
       "",
       "  La instancia de desarrollo tiene topes de uso y no esta pensada para",
       "  una tienda real: en algun momento van a empezar a fallar los registros",
-      "  de clientas. Hay que crear la instancia de produccion en Clerk, cargar",
+      "  de clientas. Hay que crear la instancia de producción en Clerk, cargar",
       "  sus registros DNS y cambiar las claves por las pk_live_ / sk_live_.",
       "",
     ].join("\n")

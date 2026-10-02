@@ -25,7 +25,7 @@ function requireClerkUserId(req: Request) {
   const clerkUserId = getClerkUserId(req);
 
   if (!clerkUserId) {
-    throw new HttpError(401, "Necesitas iniciar sesion.", CODIGOS.SESION_REQUERIDA);
+    throw new HttpError(401, "Necesitas iniciar sesión.", CODIGOS.SESION_REQUERIDA);
   }
 
   return clerkUserId;

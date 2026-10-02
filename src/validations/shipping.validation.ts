@@ -13,7 +13,7 @@ export const shippingQuoteSchema = z
       .default("")
       .refine(
         (texto) => texto === "" || esCodigoPostal(texto),
-        "El codigo postal va con 4 numeros (1425) o en formato CPA (C1425DYB)."
+        "El código postal va con 4 números (1425) o en formato CPA (C1425DYB)."
       ),
     address: z.string().trim().optional().default(""),
     city: z.string().trim().optional().default(""),
@@ -27,7 +27,7 @@ export const shippingQuoteSchema = z
       input.address.trim().length >= 4 ||
       input.city.trim().length >= 2,
     {
-      message: "Necesitamos tu codigo postal, tu direccion o tu ciudad.",
+      message: "Necesitamos tu código postal, tu dirección o tu ciudad.",
       path: ["postalCode"],
     }
   );

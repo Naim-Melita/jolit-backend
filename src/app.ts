@@ -120,7 +120,7 @@ export function createApp() {
   app.use("/api/subscribers", subscribersRouter);
   app.use("/api/uploads", uploadRateLimit, requireAdminAccess, uploadsRouter);
 
-  app.use((_req, _res, next) => next(notFound("Esa direccion no existe.", CODIGOS.RUTA_NO_ENCONTRADA)));
+  app.use((_req, _res, next) => next(notFound("Esa dirección no existe.", CODIGOS.RUTA_NO_ENCONTRADA)));
   app.use(errorHandler);
 
   return app;

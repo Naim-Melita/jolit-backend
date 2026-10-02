@@ -25,24 +25,24 @@ export const orderSchema = z.object({
   customerName: z
     .string()
     .trim()
-    .refine(esNombreDePersona, "Ingresa tu nombre y apellido, sin numeros."),
-  customerEmail: z.string().trim().email("Revisa el email: no parece valido."),
+    .refine(esNombreDePersona, "Ingresá tu nombre y apellido, sin números."),
+  customerEmail: z.string().trim().email("Revisá el email: no parece válido."),
   customerPhone: z
     .string()
     .trim()
-    .refine(esTelefono, "Ingresa un telefono con al menos 8 numeros."),
+    .refine(esTelefono, "Ingresá un teléfono con al menos 8 números."),
   shippingAddress: z
     .string()
     .trim()
     .optional()
     .default("")
-    .refine(siLoCargo(esDireccion), "Ingresa la calle y la altura."),
+    .refine(siLoCargo(esDireccion), "Ingresá la calle y la altura."),
   shippingCity: z
     .string()
     .trim()
     .optional()
     .default("")
-    .refine(siLoCargo(esLocalidad), "Ingresa el nombre de la ciudad."),
+    .refine(siLoCargo(esLocalidad), "Ingresá el nombre de la ciudad."),
   shippingPostalCode: z
     .string()
     .trim()
@@ -50,7 +50,7 @@ export const orderSchema = z.object({
     .default("")
     .refine(
       siLoCargo(esCodigoPostal),
-      "El codigo postal va con 4 numeros (1425) o en formato CPA (C1425DYB)."
+      "El código postal va con 4 números (1425) o en formato CPA (C1425DYB)."
     ),
   shippingCountry: z.string().trim().optional().default("Argentina"),
   // El costo de envio NO se acepta del cliente: se cotiza en el servidor
@@ -79,6 +79,6 @@ export const orderShippingSchema = z.object({
 });
 
 export const orderLookupSchema = z.object({
-  orderNumber: z.string().trim().min(3, "Ingresa el numero de pedido."),
-  contact: z.string().trim().min(3, "Ingresa el email o telefono de la compra."),
+  orderNumber: z.string().trim().min(3, "Ingresá el número de pedido."),
+  contact: z.string().trim().min(3, "Ingresá el email o teléfono de la compra."),
 });

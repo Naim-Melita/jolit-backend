@@ -54,7 +54,7 @@ export async function createCategory(input: CategoryInput) {
   const slugTaken = await prisma.category.findUnique({ where: { slug } });
 
   if (slugTaken) {
-    throw badRequest("Ya hay una categoria con ese enlace.", CODIGOS.SLUG_DUPLICADO);
+    throw badRequest("Ya hay una categoría con ese enlace.", CODIGOS.SLUG_DUPLICADO);
   }
 
   return prisma.category.create({
@@ -75,7 +75,7 @@ export async function createCategory(input: CategoryInput) {
 export async function updateCategory(id: number, input: UpdateCategoryInput) {
   const category = await prisma.category.findUnique({ where: { id } });
 
-  if (!category) throw notFound("No encontramos esa categoria.", CODIGOS.CATEGORIA_NO_ENCONTRADA);
+  if (!category) throw notFound("No encontramos esa categoría.", CODIGOS.CATEGORIA_NO_ENCONTRADA);
 
   const nextSlug = input.slug ?? (input.name ? slugify(input.name) : category.slug);
   const slugTaken = await prisma.category.findFirst({
@@ -86,7 +86,7 @@ export async function updateCategory(id: number, input: UpdateCategoryInput) {
   });
 
   if (slugTaken) {
-    throw badRequest("Ya hay una categoria con ese enlace.", CODIGOS.SLUG_DUPLICADO);
+    throw badRequest("Ya hay una categoría con ese enlace.", CODIGOS.SLUG_DUPLICADO);
   }
 
   const nextName = input.name ?? category.name;
@@ -122,11 +122,11 @@ export async function deleteCategory(id: number) {
     },
   });
 
-  if (!category) throw notFound("No encontramos esa categoria.", CODIGOS.CATEGORIA_NO_ENCONTRADA);
+  if (!category) throw notFound("No encontramos esa categoría.", CODIGOS.CATEGORIA_NO_ENCONTRADA);
 
   if (category._count.products > 0) {
     throw badRequest(
-      "No se puede borrar una categoria que todavia tiene productos.",
+      "No se puede borrar una categoría que todavia tiene productos.",
       CODIGOS.CATEGORIA_CON_PRODUCTOS
     );
   }

@@ -88,8 +88,8 @@ function interpretarFila(
   const stockCrudo = texto("stock");
 
   if (!nombre) errores.push("falta el nombre");
-  if (!descripcion) errores.push("falta la descripcion");
-  if (!categoria) errores.push("falta la categoria");
+  if (!descripcion) errores.push("falta la descripción");
+  if (!categoria) errores.push("falta la categoría");
 
   const precio = leerPrecio(precioCrudo);
   if (precio === null) errores.push(`el precio "${precioCrudo}" no se entiende`);
@@ -98,7 +98,7 @@ function interpretarFila(
   const stock = Number(stockCrudo);
   if (!stockCrudo) errores.push("falta el stock");
   else if (!Number.isInteger(stock) || stock < 0) {
-    errores.push(`el stock "${stockCrudo}" tiene que ser un numero entero`);
+    errores.push(`el stock "${stockCrudo}" tiene que ser un número entero`);
   }
 
   const material = texto("material");
@@ -356,7 +356,7 @@ async function main() {
   if (problemas.length > 0) {
     console.error(`\nLa planilla tiene ${problemas.length} problema(s):\n`);
     console.error(problemas.join("\n"));
-    console.error("\nNo se importo nada. Corregi la planilla y volve a correr.\n");
+    console.error("\nNo se importo nada. Corregi la planilla y volvé a correr.\n");
     process.exit(1);
   }
 
@@ -377,7 +377,7 @@ async function main() {
   console.log(`  filas leidas : ${filas.length}`);
   console.log(`  nuevos       : ${nuevos.length}`);
   console.log(`  a actualizar : ${actualizados.length}`);
-  console.log(`  categorias   : ${[...categorias].join(", ")}`);
+  console.log(`  categorías   : ${[...categorias].join(", ")}`);
   console.log("");
 
   if (sinFoto.length > 0) {
@@ -385,7 +385,7 @@ async function main() {
     for (const f of sinFoto.slice(0, 5)) {
       console.log(`    fila ${f.numeroDeFila}: ${f.nombre}`);
     }
-    if (sinFoto.length > 5) console.log(`    ...y ${sinFoto.length - 5} mas`);
+    if (sinFoto.length > 5) console.log(`    ...y ${sinFoto.length - 5} más`);
     console.log("");
     console.log("  Un producto sin foto no se puede mostrar en la tienda.");
     console.log("");
@@ -401,7 +401,7 @@ async function main() {
 
   if (soloProbar) {
     console.log("Modo prueba: no se escribio nada.");
-    console.log("Revisa los precios de arriba y, si estan bien, corre sin --probar.\n");
+    console.log("Revisá los precios de arriba y, si están bien, corre sin --probar.\n");
     return;
   }
 
@@ -429,7 +429,7 @@ async function main() {
         `\nSe corto en la fila ${fila.numeroDeFila} ("${fila.nombre}"): ${error?.message ?? error}`
       );
       console.error(
-        `Se importaron ${hechos} productos. Corregi y volve a correr: los ya importados se actualizan, no se duplican.\n`
+        `Se importaron ${hechos} productos. Corregi y volvé a correr: los ya importados se actualizan, no se duplican.\n`
       );
       process.exit(1);
     }

@@ -305,7 +305,7 @@ export async function createProduct(input: ProductInput): Promise<Product> {
   });
 
   if (!category) {
-    throw badRequest("Esa categoria no existe.", CODIGOS.CATEGORIA_NO_ENCONTRADA);
+    throw badRequest("Esa categoría no existe.", CODIGOS.CATEGORIA_NO_ENCONTRADA);
   }
 
   const slugTaken = await prisma.product.findUnique({ where: { slug } });
@@ -434,7 +434,7 @@ export async function updateProduct(
   });
 
   if (!category) {
-    throw badRequest("Esa categoria no existe.", CODIGOS.CATEGORIA_NO_ENCONTRADA);
+    throw badRequest("Esa categoría no existe.", CODIGOS.CATEGORIA_NO_ENCONTRADA);
   }
 
   const nextSlug = input.slug ?? (input.name ? slugify(input.name) : current.slug);

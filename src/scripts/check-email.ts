@@ -58,14 +58,14 @@ async function revisarDominioEnResend(
     if (detalle.includes("restricted_api_key")) {
       console.log("Dominios en Resend");
       console.log("------------------");
-      console.log("  no se puede consultar: la API key es de solo envio.");
-      console.log("  (esta bien que lo sea; lo verificamos por DNS mas abajo)");
+      console.log("  no se puede consultar: la API key es de solo envío.");
+      console.log("  (esta bien que lo sea; lo verificamos por DNS más abajo)");
       console.log("");
       return;
     }
 
     if (respuesta.status === 401) {
-      problemas.push("La API key de Resend no es valida o fue rotada.");
+      problemas.push("La API key de Resend no es válida o fue rotada.");
     } else {
       problemas.push(
         `Resend respondio ${respuesta.status} al listar dominios: ${detalle}`
@@ -159,7 +159,7 @@ async function revisarDnsDelDominio(dominio: string, problemas: string[]) {
   console.log(`  ${marca(spf)}SPF   send.${dominio}`);
 
   if (dkim === "sin_respuesta" || spf === "sin_respuesta") {
-    console.log("  (no se pudo consultar el DNS; revisar la conexion)");
+    console.log("  (no se pudo consultar el DNS; revisar la conexión)");
   }
 
   console.log("");
@@ -178,7 +178,7 @@ async function main() {
   const problemas: string[] = [];
 
   console.log("");
-  console.log("Configuracion de mails");
+  console.log("Configuración de mails");
   console.log("----------------------");
   console.log(`  RESEND_API_KEY   ${apiKey ? "cargada" : "FALTA"}`);
   console.log(`  EMAIL_FROM       ${from || "FALTA"}`);
@@ -195,7 +195,7 @@ async function main() {
   const dominio = dominioDelRemitente(from);
 
   if (!dominio) {
-    console.error(`EMAIL_FROM no tiene una direccion valida: ${from}`);
+    console.error(`EMAIL_FROM no tiene una dirección válida: ${from}`);
     process.exit(1);
   }
 
@@ -222,13 +222,13 @@ async function main() {
       body: JSON.stringify({
         from,
         to: [destino],
-        subject: "Prueba de envio de Jolit",
-        html: "<p>Si estas leyendo esto, el envio de mails de la tienda funciona.</p>",
+        subject: "Prueba de envío de Jolit",
+        html: "<p>Si estas leyendo esto, el envío de mails de la tienda funciona.</p>",
       }),
     });
 
     if (envio.ok) {
-      console.log("  aceptado por Resend. Revisa la casilla (y el spam).");
+      console.log("  aceptado por Resend. Revisá la casilla (y el spam).");
     } else {
       const detalle = await envio.text().catch(() => "");
       problemas.push(
@@ -252,6 +252,6 @@ async function main() {
 }
 
 main().catch((error) => {
-  console.error("No se pudo completar la revision", error);
+  console.error("No se pudo completar la revisión", error);
   process.exit(1);
 });

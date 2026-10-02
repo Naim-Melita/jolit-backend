@@ -8,7 +8,7 @@ export async function getMeCustomer(req: Request, res: Response) {
   const { userId } = getAuth(req);
 
   if (!userId) {
-    throw new HttpError(401, "Necesitas iniciar sesion.", CODIGOS.SESION_REQUERIDA);
+    throw new HttpError(401, "Necesitas iniciar sesión.", CODIGOS.SESION_REQUERIDA);
   }
 
   const user = await clerkClient.users.getUser(userId);

@@ -36,7 +36,7 @@ console.log(
 );
 
 const sitios = [...conYSinWww(origenesConfigurados())];
-console.log(`\nSitios autorizados a usar la sesion (authorizedParties):`);
+console.log(`\nSitios autorizados a usar la sesión (authorizedParties):`);
 if (sitios.length === 0) {
   console.log("  (ninguno: falta FRONTEND_ORIGIN)");
 } else {
@@ -47,7 +47,7 @@ console.log("");
 
 if (publica !== secreta) {
   console.log(
-    "PROBLEMA: la clave publica y la secreta no son de la misma instancia.\n" +
+    "PROBLEMA: la clave pública y la secreta no son de la misma instancia.\n" +
       "Las sesiones que emita una no las va a validar la otra.\n"
   );
   process.exit(1);
@@ -68,4 +68,4 @@ if (secreta === "desarrollo") {
   process.exit(process.env.NODE_ENV === "production" ? 1 : 0);
 }
 
-console.log("Todo en orden: instancia de produccion.\n");
+console.log("Todo en orden: instancia de producción.\n");

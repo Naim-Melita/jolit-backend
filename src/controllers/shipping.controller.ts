@@ -13,7 +13,7 @@ export async function postShippingQuote(req: Request, res: Response) {
 
   if (input.postalCode && !Number.isFinite(numericPostalCode)) {
     throw badRequest(
-      "Reviso el codigo postal: no parece valido.",
+      "Reviso el código postal: no parece válido.",
       CODIGOS.CODIGO_POSTAL_INVALIDO
     );
   }

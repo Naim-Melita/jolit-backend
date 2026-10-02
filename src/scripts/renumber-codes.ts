@@ -53,7 +53,7 @@ async function main() {
     cambios.push({
       id: producto.id,
       nombre: producto.name,
-      antes: producto.sku ?? "(sin codigo)",
+      antes: producto.sku ?? "(sin código)",
       ahora: armarCodigo(serie, numero),
     });
   }
@@ -76,7 +76,7 @@ async function main() {
 
   if (!aplicar) {
     console.log("\nNo se cambio nada. Para aplicarlo:\n");
-    console.log("  npm run codigos:reiniciar -- --aplicar\n");
+    console.log("  npm run códigos:reiniciar -- --aplicar\n");
     return;
   }
 
@@ -91,7 +91,7 @@ async function main() {
     }
   });
 
-  console.log("\nListo. Los codigos quedaron reiniciados.\n");
+  console.log("\nListo. Los códigos quedaron reiniciados.\n");
 }
 
 main()

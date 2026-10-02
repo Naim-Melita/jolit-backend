@@ -21,7 +21,7 @@ export function notFound(message = "No lo encontramos", code?: CodigoDeError) {
   return new HttpError(404, message, code);
 }
 
-export function badRequest(message = "Solicitud invalida", code?: CodigoDeError) {
+export function badRequest(message = "Solicitud inválida", code?: CodigoDeError) {
   return new HttpError(400, message, code);
 }
 
@@ -86,7 +86,7 @@ export function errorHandler(
   if (error instanceof MulterError) {
     const mensaje =
       error.code === "LIMIT_FILE_SIZE"
-        ? "La foto es demasiado pesada. El maximo son 5 MB."
+        ? "La foto es demasiado pesada. El máximo son 5 MB."
         : "No pudimos leer el archivo que subiste.";
 
     return responder(
@@ -112,17 +112,17 @@ export function errorHandler(
       res,
       401,
       CODIGOS.SESION_REQUERIDA,
-      "Tu sesion vencio. Volve a ingresar."
+      "Tu sesión vencio. Volvé a ingresar."
     );
   }
 
   if (isMercadoPagoError(error)) {
-    console.error("Mercado Pago rechazo la operacion", error);
+    console.error("Mercado Pago rechazo la operación", error);
     return responder(
       res,
       502,
       CODIGOS.PAGO_RECHAZADO_POR_PASARELA,
-      "Mercado Pago no pudo procesar la operacion. Intentalo de nuevo en un momento."
+      "Mercado Pago no pudo procesar la operación. Intentalo de nuevo en un momento."
     );
   }
 

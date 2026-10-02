@@ -27,7 +27,7 @@ function validate(email: string, password: string) {
   const problems: string[] = [];
 
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
-    problems.push("El email no es valido.");
+    problems.push("El email no es válido.");
   }
 
   if (password.length < 12) {

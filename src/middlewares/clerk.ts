@@ -57,7 +57,7 @@ export function requireAuth(req: Request, _res: Response, next: NextFunction) {
   if (!isClerkConfigured()) {
     next(new HttpError(
         503,
-        "Las cuentas de clientas no estan disponibles en este momento.",
+        "Las cuentas de clientas no están disponibles en este momento.",
         CODIGOS.CLERK_NO_CONFIGURADO
       ));
     return;
@@ -66,7 +66,7 @@ export function requireAuth(req: Request, _res: Response, next: NextFunction) {
   const { userId } = getAuth(req);
 
   if (!userId) {
-    next(new HttpError(401, "Necesitas iniciar sesion.", CODIGOS.SESION_REQUERIDA));
+    next(new HttpError(401, "Necesitas iniciar sesión.", CODIGOS.SESION_REQUERIDA));
     return;
   }
 
@@ -89,7 +89,7 @@ export async function requireClerkAdmin(
     if (!isClerkConfigured()) {
       next(new HttpError(
         503,
-        "Las cuentas de clientas no estan disponibles en este momento.",
+        "Las cuentas de clientas no están disponibles en este momento.",
         CODIGOS.CLERK_NO_CONFIGURADO
       ));
       return;
@@ -98,7 +98,7 @@ export async function requireClerkAdmin(
     const { userId } = getAuth(req);
 
     if (!userId) {
-      next(new HttpError(401, "Necesitas iniciar sesion.", CODIGOS.SESION_REQUERIDA));
+      next(new HttpError(401, "Necesitas iniciar sesión.", CODIGOS.SESION_REQUERIDA));
       return;
     }
 
@@ -112,7 +112,7 @@ export async function requireClerkAdmin(
     if (!isAllowed) {
       next(new HttpError(
         403,
-        "No tenes permisos para hacer esto.",
+        "No tenés permisos para hacer esto.",
         CODIGOS.SIN_PERMISOS
       ));
       return;

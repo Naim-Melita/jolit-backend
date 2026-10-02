@@ -81,7 +81,7 @@ function totalsBlock(order: Order) {
  */
 function shippingBlock(order: Order) {
   const costo =
-    Number(order.shippingCost) === 0 ? "Envio gratis" : money(order.shippingCost);
+    Number(order.shippingCost) === 0 ? "Envío gratis" : money(order.shippingCost);
   const plazo = order.shippingEta
     ? ` &middot; llega en ${escapeHtml(order.shippingEta)}`
     : "";

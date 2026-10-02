@@ -29,7 +29,7 @@ function getJwtSecret() {
 
   if (isProduction()) {
     throw new Error(
-      `ADMIN_JWT_SECRET es obligatorio en produccion y debe tener al menos ${MIN_SECRET_LENGTH} caracteres`
+      `ADMIN_JWT_SECRET es obligatorio en producción y debe tener al menos ${MIN_SECRET_LENGTH} caracteres`
     );
   }
 
@@ -247,7 +247,7 @@ export async function requireAdmin(
     if (!isAdminTokenRequest(req)) {
       next(new HttpError(
         401,
-        "Necesitas iniciar sesion en el panel.",
+        "Necesitas iniciar sesión en el panel.",
         CODIGOS.ADMIN_AUTH_REQUERIDA
       ));
       return;

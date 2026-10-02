@@ -48,7 +48,7 @@ export async function handleMercadoPagoWebhook(
   }
 
   if (!verifyWebhookSignature({ ...headers, dataId })) {
-    throw new HttpError(401, "Firma de webhook invalida");
+    throw new HttpError(401, "Firma de webhook inválida");
   }
 
   const payment = await fetchPaymentSnapshot(dataId);
@@ -131,7 +131,7 @@ export async function aplicarPagoAlPedido(
   // el pedido expiro. Lo dejamos cancelado y avisamos para resolverlo a mano.
   if (order.status === "cancelled") {
     console.error(
-      `Pedido ${order.orderNumber}: se acredito el pago ${payment.paymentId} sobre un pedido ya cancelado. Requiere revision manual.`
+      `Pedido ${order.orderNumber}: se acredito el pago ${payment.paymentId} sobre un pedido ya cancelado. Requiere revisión manual.`
     );
 
     await prisma.orderEvent.create({
@@ -139,7 +139,7 @@ export async function aplicarPagoAlPedido(
         orderId: order.id,
         type: "status_changed",
         message:
-          "Se acredito un pago sobre este pedido ya cancelado. Revisar si hay stock para cumplirlo o si corresponde devolver el dinero.",
+          "Se acreditó un pago sobre este pedido ya cancelado. Revisar si hay stock para cumplirlo o si corresponde devolver el dinero.",
       },
     });
 

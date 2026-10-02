@@ -13,19 +13,19 @@ export const productSchema = z.object({
   // Vacio significa "generalo desde el nombre".
   slug: textoOpcional(2, "El enlace necesita al menos 2 caracteres."),
   sku: z.string().trim().max(40).optional().default(""),
-  description: z.string().trim().min(1, "Escribi una descripcion."),
+  description: z.string().trim().min(1, "Escribi una descripción."),
   price: z.coerce
-    .number("El precio va en numeros, sin el signo pesos.")
+    .number("El precio va en números, sin el signo pesos.")
     .positive("El precio tiene que ser mayor a cero."),
   stock: z.coerce
-    .number("El stock va en numeros enteros.")
-    .int("El stock va en numeros enteros.")
+    .number("El stock va en números enteros.")
+    .int("El stock va en números enteros.")
     .min(0, "El stock no puede ser negativo."),
   imageUrl: z.url("La foto principal tiene que ser un enlace."),
   galleryImages: z.array(z.url("Cada foto tiene que ser un enlace.")).optional().default([]),
   category: z.string().trim().min(2),
   // Opcional: una pieza puede no tener material cargado.
-  material: textoOpcional(1, "Elegi un material de la lista."),
+  material: textoOpcional(1, "Elegí un material de la lista."),
   featured: z.coerce.boolean().optional().default(false),
 });
 

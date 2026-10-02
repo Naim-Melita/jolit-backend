@@ -312,8 +312,8 @@ export async function updateOrderStatus(
           id,
           "status_changed",
           current.paymentId
-            ? `Este pedido estaba pagado. La devolucion NO es automatica: hay que hacerla en Mercado Pago sobre el pago ${current.paymentId}.`
-            : "Este pedido estaba pagado. La devolucion NO es automatica: hay que hacerla en Mercado Pago."
+            ? `Este pedido estaba pagado. La devolución NO es automática: hay que hacerla en Mercado Pago sobre el pago ${current.paymentId}.`
+            : "Este pedido estaba pagado. La devolución NO es automática: hay que hacerla en Mercado Pago."
         );
       }
 
@@ -321,7 +321,7 @@ export async function updateOrderStatus(
         tx,
         id,
         "status_changed",
-        "Stock restaurado por cancelacion"
+        "Stock restaurado por cancelación"
       );
     }
 
@@ -410,7 +410,7 @@ export async function updateOrderShipping(
       },
     });
 
-    await addOrderEvent(tx, id, "shipping_updated", "Datos de envio actualizados");
+    await addOrderEvent(tx, id, "shipping_updated", "Datos de envío actualizados");
 
     return tx.order.findUniqueOrThrow({
       where: { id },

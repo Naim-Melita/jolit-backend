@@ -52,7 +52,7 @@ function parseCartItemInput(req: Request) {
   }
 
   if (!Number.isInteger(quantity) || quantity <= 0) {
-    throw badRequest("La cantidad no es valida.", CODIGOS.CANTIDAD_INVALIDA);
+    throw badRequest("La cantidad no es válida.", CODIGOS.CANTIDAD_INVALIDA);
   }
 
   return { productId, quantity };
@@ -72,7 +72,7 @@ function requireClerkUserId(req: Request) {
   const clerkUserId = getClerkUserId(req);
 
   if (!clerkUserId) {
-    throw new HttpError(401, "Necesitas iniciar sesion.", CODIGOS.SESION_REQUERIDA);
+    throw new HttpError(401, "Necesitas iniciar sesión.", CODIGOS.SESION_REQUERIDA);
   }
 
   return clerkUserId;

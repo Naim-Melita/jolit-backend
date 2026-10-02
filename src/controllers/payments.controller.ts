@@ -5,7 +5,7 @@ export async function postPaymentPreference(req: Request, res: Response) {
   const orderId = Number(req.body?.orderId);
 
   if (!Number.isInteger(orderId) || orderId <= 0) {
-    res.status(400).json({ error: "orderId invalido" });
+    res.status(400).json({ error: "orderId inválido" });
     return;
   }
 

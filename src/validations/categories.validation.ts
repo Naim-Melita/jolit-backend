@@ -8,7 +8,7 @@ export const categorySchema = z.object({
     .trim()
     .refine(
       (texto) => cantidadDeLetras(texto) >= 2,
-      "El nombre de la categoria lleva letras."
+      "El nombre de la categoría lleva letras."
     ),
   // Vacio significa "generalo desde el nombre".
   slug: textoOpcional(2, "El enlace necesita al menos 2 caracteres."),

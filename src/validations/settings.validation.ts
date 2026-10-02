@@ -16,7 +16,7 @@ export const settingsSchema = z.object({
   whatsappNumber: z
     .string()
     .trim()
-    .refine(esTelefono, "El WhatsApp va con numeros, al menos 8."),
+    .refine(esTelefono, "El WhatsApp va con números, al menos 8."),
   shipping: z
     .object({
       provider: z.string().min(2).default("Correo Argentino"),
@@ -44,7 +44,7 @@ export const settingsSchema = z.object({
         .default("")
         .refine(
           siLoCargo((texto) => cantidadDeLetras(texto) >= 2),
-          "La razon social lleva letras."
+          "La razón social lleva letras."
         ),
       // El CUIT se imprime en el comprobante: se valida el digito
       // verificador, no solo que sean once numeros.
@@ -55,7 +55,7 @@ export const settingsSchema = z.object({
         .default("")
         .refine(
           siLoCargo(esCuit),
-          "Ese CUIT no es valido. Son 11 numeros y el ultimo tiene que cerrar."
+          "Ese CUIT no es válido. Son 11 números y el último tiene que cerrar."
         ),
       address: z
         .string()
@@ -71,7 +71,7 @@ export const settingsSchema = z.object({
         .trim()
         .max(120)
         .default("")
-        .refine(siLoCargo(esEmail), "Ese email no parece valido."),
+        .refine(siLoCargo(esEmail), "Ese email no parece válido."),
       dataFiscalUrl: z
         .string()
         .trim()

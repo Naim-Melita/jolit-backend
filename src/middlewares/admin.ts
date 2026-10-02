@@ -22,7 +22,7 @@ export async function requireAdminAccess(
 
     next(new HttpError(
         401,
-        "Necesitas iniciar sesion en el panel.",
+        "Necesitas iniciar sesión en el panel.",
         CODIGOS.ADMIN_AUTH_REQUERIDA
       ));
   } catch (error) {

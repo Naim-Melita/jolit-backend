@@ -111,14 +111,14 @@ function getEstimatedQuote(
     return {
       label: "Correo Argentino a domicilio - GBA",
       cost: rates.gbaRate,
-      eta: "2 a 4 dias habiles",
+      eta: "2 a 4 días habiles",
     };
   }
 
   return {
     label: "Correo Argentino a domicilio - Interior",
     cost: rates.interiorRate,
-    eta: "3 a 7 dias habiles",
+    eta: "3 a 7 días habiles",
   };
 }
 

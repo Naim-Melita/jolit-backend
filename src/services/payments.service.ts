@@ -46,7 +46,7 @@ export async function createPaymentPreference(orderId: number) {
   if (!isMercadoPagoConfigured()) {
     throw new HttpError(
       503,
-      "Los pagos no estan disponibles en este momento.",
+      "Los pagos no están disponibles en este momento.",
       CODIGOS.PAGOS_NO_DISPONIBLES
     );
   }

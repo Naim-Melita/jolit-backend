@@ -345,7 +345,7 @@ describe("historial del pedido", () => {
     const cancelado = await updateOrderStatus(pedido.id, { status: "cancelled" });
     const mensajes = cancelado.events.map((evento) => evento.message).join(" | ");
 
-    assert.match(mensajes, /devolucion NO es automatica/);
+    assert.match(mensajes, /devolución NO es automática/);
     assert.match(mensajes, /Stock restaurado/);
   });
 

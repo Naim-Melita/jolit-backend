@@ -6,7 +6,7 @@ export const subscriberSchema = z.object({
     .string()
     .trim()
     .max(80)
-    .refine(esNombreDePersona, "Ingresa tu nombre, sin numeros."),
+    .refine(esNombreDePersona, "Ingresá tu nombre, sin números."),
   email: z.string().trim().toLowerCase().email(),
   phone: z
     .string()
@@ -16,7 +16,7 @@ export const subscriberSchema = z.object({
     .default("")
     .refine(
       (texto) => texto === "" || esTelefono(texto),
-      "Ingresa un telefono con al menos 8 numeros."
+      "Ingresá un teléfono con al menos 8 números."
     )
     .transform((value) => value || null),
   source: z.string().trim().max(40).optional().default("home"),
