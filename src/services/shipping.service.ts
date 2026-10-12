@@ -68,14 +68,12 @@ export async function cotizarEnvio(
       postalCodeOrigin: origen,
       postalCodeDestination: destino,
       deliveredType: "D",
-      dimensions: [
-        armarBulto(input.units ?? 1, {
-          gramosPorPieza: config.gramsPerItem,
-          alto: config.packageHeight,
-          ancho: config.packageWidth,
-          largo: config.packageLength,
-        }),
-      ],
+      dimensions: armarBulto(input.units ?? 1, {
+        gramosPorPieza: config.gramsPerItem,
+        alto: config.packageHeight,
+        ancho: config.packageWidth,
+        largo: config.packageLength,
+      }),
     });
 
     const elegida = masBarata(tarifas, "D");
@@ -107,10 +105,26 @@ export async function cotizarEnvio(
   }
 }
 
-function demora(min?: number, max?: number) {
-  if (!min && !max) return "";
-  if (min && max && min !== max) return `${min} a ${max} días hábiles`;
+/**
+ * El texto de la demora.
+ *
+ * Los dias vienen como texto en el manual ("2", "5"), asi que se convierten
+ * antes de compararlos: con cadenas, "2" !== "02" y 1 no se detecta.
+ */
+function demora(min?: string | number, max?: string | number) {
+  const n = (v?: string | number) => {
+    const valor = Number(v);
+    return Number.isFinite(valor) && valor > 0 ? valor : null;
+  };
 
-  const dias = max ?? min;
+  const desde = n(min);
+  const hasta = n(max);
+
+  if (desde === null && hasta === null) return "";
+  if (desde !== null && hasta !== null && desde !== hasta) {
+    return `${desde} a ${hasta} días hábiles`;
+  }
+
+  const dias = hasta ?? desde;
   return `${dias} ${dias === 1 ? "día hábil" : "días hábiles"}`;
 }

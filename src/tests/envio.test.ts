@@ -226,8 +226,8 @@ describe("armarBulto", () => {
   it("nunca se sale de lo que acepta la API", () => {
     const enorme = armarBulto(100000, { gramosPorPieza: 60, alto: 4, ancho: 15, largo: 20 });
 
-    assert.ok(enorme.weight <= 25000, "el peso no puede pasar de 25000 g");
-    assert.ok(enorme.height <= 150, "el alto no puede pasar de 150 cm");
+    assert.ok(enorme.weight <= 50000, "el peso no puede pasar de 50000 g");
+    assert.ok(enorme.height <= 200, "el alto no puede pasar de 200 cm");
   });
 
   it("una pieza como minimo, aunque venga cero", () => {
@@ -238,5 +238,92 @@ describe("armarBulto", () => {
 describe("masBarata", () => {
   it("devuelve null si no hay ninguna", () => {
     assert.equal(masBarata([]), null);
+  });
+});
+
+/**
+ * Lo que dice el manual oficial de la API MiCorreo.
+ *
+ * Una primera version se escribio contra la documentacion de un wrapper de
+ * terceros y tenia tres cosas mal: mandaba el bulto dentro de un array,
+ * cortaba el peso en 25 kg cuando la API acepta 50, y no contemplaba el
+ * limite de la suma de los lados.
+ */
+describe("lo que pide el manual oficial", () => {
+  it("manda el bulto como objeto, no como lista", async () => {
+    configurar();
+    let cuerpoEnviado: any = null;
+
+    globalThis.fetch = (async (url: string | URL, opciones: RequestInit) => {
+      const ruta = String(url);
+      if (ruta.endsWith("/token")) {
+        return { ok: true, status: 200, json: async () => ({ token: "t" }) } as Response;
+      }
+      cuerpoEnviado = JSON.parse(String(opciones.body));
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          rates: [{ deliveredType: "D", productType: "CP", productName: "Clasico", price: 500 }],
+        }),
+      } as Response;
+    }) as typeof fetch;
+
+    await cotizarEnvio({ postalCode: "1704", subtotal: 0, units: 2 }, CONFIG);
+
+    assert.ok(
+      !Array.isArray(cuerpoEnviado.dimensions),
+      "dimensions tiene que ser un objeto: el manual lo muestra asi"
+    );
+    assert.equal(typeof cuerpoEnviado.dimensions.weight, "number");
+    assert.equal(cuerpoEnviado.dimensions.weight, 120);
+  });
+
+  it("respeta los limites del manual: 50 kg y 200 cm por lado", () => {
+    const enorme = armarBulto(100000, {
+      gramosPorPieza: 60,
+      alto: 500,
+      ancho: 500,
+      largo: 500,
+    });
+
+    assert.ok(enorme.weight <= 50000, "hasta 50000 g");
+    assert.ok(enorme.height <= 200, "hasta 200 cm de alto");
+    assert.ok(enorme.width <= 200, "hasta 200 cm de ancho");
+    assert.ok(enorme.length <= 200, "hasta 200 cm de largo");
+  });
+
+  // "La sumatoria total de los lados (maximo 300cm)".
+  it("la suma de los tres lados no pasa de 300 cm", () => {
+    for (const piezas of [1, 10, 50, 500, 100000]) {
+      const b = armarBulto(piezas, { gramosPorPieza: 60, alto: 4, ancho: 15, largo: 20 });
+      const suma = b.height + b.width + b.length;
+
+      assert.ok(suma <= 300, `con ${piezas} piezas la suma dio ${suma}`);
+    }
+  });
+
+  // El manual los documenta como texto: "deliveryTimeMin": "2".
+  it("entiende los dias de demora aunque vengan como texto", async () => {
+    configurar();
+    simularApi({
+      rates: {
+        rates: [
+          {
+            deliveredType: "D",
+            productType: "CP",
+            productName: "Correo Argentino Clasico",
+            price: 498.06,
+            deliveryTimeMin: "2",
+            deliveryTimeMax: "5",
+          },
+        ],
+      },
+    });
+
+    const q = await cotizarEnvio({ postalCode: "1704", subtotal: 0, units: 1 }, CONFIG);
+
+    assert.equal(q.cost, 498.06);
+    assert.equal(q.eta, "2 a 5 días hábiles");
   });
 });

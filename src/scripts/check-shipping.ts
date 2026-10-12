@@ -124,7 +124,7 @@ async function main() {
         postalCodeOrigin: origen,
         postalCodeDestination: cp,
         deliveredType: "D",
-        dimensions: [bulto],
+        dimensions: bulto,
       });
 
       const mejor = masBarata(tarifas, "D");

@@ -33,10 +33,19 @@ const MARGEN_DE_VENCIMIENTO_MS = 60_000;
 
 export type TipoDeEntrega = "D" | "S";
 
+/** Limites del manual oficial de la API MiCorreo. */
+export const LIMITES = {
+  pesoMinimo: 1,
+  pesoMaximo: 50_000,
+  ladoMaximo: 200,
+  /** La suma de los tres lados no puede pasar de esto. */
+  sumaDeLadosMaxima: 300,
+} as const;
+
 export type Bulto = {
-  /** En gramos. La API acepta de 1 a 25000. */
+  /** En gramos, de 1 a 50000. */
   weight: number;
-  /** En centimetros, hasta 150 cada una. */
+  /** En centimetros, hasta 200 cada uno, y entre los tres hasta 300. */
   height: number;
   width: number;
   length: number;
@@ -47,8 +56,9 @@ export type TarifaDeCorreo = {
   productType: string;
   productName: string;
   price: number;
-  deliveryTimeMin?: number;
-  deliveryTimeMax?: number;
+  /** El manual los documenta como texto ("2", "5"), no como numero. */
+  deliveryTimeMin?: string | number;
+  deliveryTimeMax?: string | number;
 };
 
 export function micorreoConfigurado() {
@@ -160,7 +170,14 @@ export function olvidarToken() {
 export async function cotizar(input: {
   postalCodeOrigin: string;
   postalCodeDestination: string;
-  dimensions: Bulto[];
+  /**
+   * Un solo bulto, como objeto.
+   *
+   * El manual oficial lo muestra asi, no como lista. Una primera version lo
+   * mandaba dentro de un array, siguiendo la documentacion de un wrapper de
+   * terceros, y la API lo habria rechazado.
+   */
+  dimensions: Bulto;
   deliveredType?: TipoDeEntrega;
   esperaMs?: number;
 }): Promise<TarifaDeCorreo[]> {
@@ -197,7 +214,11 @@ export async function cotizar(input: {
  * para una diferencia de pesos.
  *
  * El alto crece con la cantidad, que es lo unico que cambia de verdad cuando
- * entran mas piezas en el mismo sobre. La API no acepta mas de 150 cm.
+ * entran mas piezas en el mismo sobre.
+ *
+ * Todo queda dentro de lo que acepta la API: cada lado hasta 200 cm, la suma
+ * de los tres hasta 300, y el peso hasta 50 kg. Un bulto fuera de esos
+ * limites hace que la cotizacion falle entera y se termine cobrando la tabla.
  */
 export function armarBulto(
   unidades: number,
@@ -209,13 +230,26 @@ export function armarBulto(
   }
 ): Bulto {
   const piezas = Math.max(1, Math.round(unidades));
+  const entre = (valor: number, maximo: number) =>
+    Math.min(maximo, Math.max(1, Math.round(valor)));
+
+  const width = entre(config.ancho, LIMITES.ladoMaximo);
+  const length = entre(config.largo, LIMITES.ladoMaximo);
+
+  // El alto es el que absorbe el recorte: el sobre no cambia de ancho ni de
+  // largo por meterle mas piezas, se pone mas gordo.
+  const altoPedido = config.alto * Math.ceil(piezas / 10);
+  const altoDisponible = LIMITES.sumaDeLadosMaxima - width - length;
+  const height = entre(
+    Math.min(altoPedido, Math.max(1, altoDisponible)),
+    LIMITES.ladoMaximo
+  );
 
   return {
-    // Entre 1 y 25000 gramos, que es lo que acepta la API.
-    weight: Math.min(25000, Math.max(1, Math.round(config.gramosPorPieza * piezas))),
-    height: Math.min(150, Math.max(1, Math.round(config.alto * Math.ceil(piezas / 10)))),
-    width: Math.min(150, Math.max(1, Math.round(config.ancho))),
-    length: Math.min(150, Math.max(1, Math.round(config.largo))),
+    weight: entre(config.gramosPorPieza * piezas, LIMITES.pesoMaximo),
+    height,
+    width,
+    length,
   };
 }
 
