@@ -1,6 +1,6 @@
 import { CODIGOS } from "../lib/errorCodes.js";
 import type { Request, Response } from "express";
-import { quoteCorreoArgentino } from "../lib/correoArgentino.js";
+import { cotizarEnvio } from "../services/shipping.service.js";
 import { badRequest } from "../lib/http.js";
 import { prisma } from "../lib/prisma.js";
 import { shippingQuoteSchema } from "../schemas.js";
@@ -23,14 +23,17 @@ export async function postShippingQuote(req: Request, res: Response) {
     checkStock: false,
   });
 
+  const unidades = input.items.reduce((total, i) => total + i.quantity, 0);
+
   res.json(
-    quoteCorreoArgentino(
+    await cotizarEnvio(
       {
         postalCode: input.postalCode,
         address: input.address,
         city: input.city,
         province: input.province,
         subtotal,
+        units: unidades,
       },
       settings.shipping
     )

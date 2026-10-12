@@ -28,6 +28,12 @@ const settings = {
     cabaRate: 2500,
     gbaRate: 3500,
     interiorRate: 5500,
+    patagoniaRate: 8500,
+    originPostalCode: "1425",
+    gramsPerItem: 60,
+    packageHeight: 4,
+    packageWidth: 15,
+    packageLength: 20,
   },
   promoBanner: {
     enabled: false,

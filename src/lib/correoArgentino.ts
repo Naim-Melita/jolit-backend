@@ -1,6 +1,7 @@
 export type ShippingQuote = {
   provider: "Correo Argentino";
-  service: "PAQ.AR";
+  /** El producto de Correo Argentino. Con la API real viene su nombre. */
+  service: string;
   label: string;
   cost: number;
   eta: string;
@@ -13,6 +14,7 @@ export type CorreoArgentinoConfig = {
   cabaRate: number;
   gbaRate: number;
   interiorRate: number;
+  patagoniaRate: number;
 };
 
 export function quoteCorreoArgentino(input: {
@@ -33,6 +35,10 @@ export function quoteCorreoArgentino(input: {
     interiorRate: readMoneyEnv(
       "CORREO_ARGENTINO_INTERIOR_RATE",
       config?.interiorRate ?? 5500
+    ),
+    patagoniaRate: readMoneyEnv(
+      "CORREO_ARGENTINO_PATAGONIA_RATE",
+      config?.patagoniaRate ?? 8500
     ),
   };
   const configured = Boolean(
@@ -112,6 +118,31 @@ function getEstimatedQuote(
       label: "Correo Argentino a domicilio - GBA",
       cost: rates.gbaRate,
       eta: "2 a 4 días habiles",
+    };
+  }
+
+  // La Patagonia va aparte porque Correo Argentino cobra bastante mas que al
+  // resto del interior. Con una sola tarifa para todo, cada envio a Ushuaia
+  // lo terminaba pagando la tienda.
+  //
+  // 8300-8500 es Rio Negro y Neuquen; 9000 en adelante, Chubut, Santa Cruz y
+  // Tierra del Fuego. Bahia Blanca (8000) queda afuera: es Buenos Aires.
+  if (
+    (destination.kind === "postalCode" &&
+      ((destination.postalCode >= 8300 && destination.postalCode <= 8500) ||
+        destination.postalCode >= 9000)) ||
+    destination.text.includes("patagonia") ||
+    destination.text.includes("tierra del fuego") ||
+    destination.text.includes("ushuaia") ||
+    destination.text.includes("santa cruz") ||
+    destination.text.includes("chubut") ||
+    destination.text.includes("neuquen") ||
+    destination.text.includes("rio negro")
+  ) {
+    return {
+      label: "Correo Argentino a domicilio - Patagonia",
+      cost: rates.patagoniaRate,
+      eta: "5 a 10 días habiles",
     };
   }
 

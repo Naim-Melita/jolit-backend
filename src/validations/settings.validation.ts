@@ -25,6 +25,14 @@ export const settingsSchema = z.object({
       cabaRate: z.coerce.number().min(0).default(2500),
       gbaRate: z.coerce.number().min(0).default(3500),
       interiorRate: z.coerce.number().min(0).default(5500),
+      // La Patagonia va aparte: Correo Argentino cobra bastante mas.
+      patagoniaRate: z.coerce.number().min(0).default(8500),
+      // Lo que hace falta para cotizar de verdad contra Correo Argentino.
+      originPostalCode: z.string().trim().default(""),
+      gramsPerItem: z.coerce.number().min(1).max(25000).default(60),
+      packageHeight: z.coerce.number().min(1).max(150).default(4),
+      packageWidth: z.coerce.number().min(1).max(150).default(15),
+      packageLength: z.coerce.number().min(1).max(150).default(20),
     })
     .optional()
     .default({
@@ -34,6 +42,12 @@ export const settingsSchema = z.object({
       cabaRate: 2500,
       gbaRate: 3500,
       interiorRate: 5500,
+      patagoniaRate: 8500,
+      originPostalCode: "",
+      gramsPerItem: 60,
+      packageHeight: 4,
+      packageWidth: 15,
+      packageLength: 20,
     }),
   seller: z
     .object({

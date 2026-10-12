@@ -25,6 +25,12 @@ const DEFAULT_SETTINGS: StoreSettings = {
     cabaRate: 2500,
     gbaRate: 3500,
     interiorRate: 5500,
+    patagoniaRate: 8500,
+    originPostalCode: "",
+    gramsPerItem: 60,
+    packageHeight: 4,
+    packageWidth: 15,
+    packageLength: 20,
   },
   promoBanner: {
     enabled: false,

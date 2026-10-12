@@ -9,6 +9,7 @@ const rates = {
   cabaRate: 2500,
   gbaRate: 3500,
   interiorRate: 5500,
+  patagoniaRate: 8500,
 };
 
 // El costo de envio se cobra de verdad, asi que estas son las funciones que

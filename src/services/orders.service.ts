@@ -6,6 +6,7 @@ import { prisma } from "../lib/prisma.js";
 import { linkClerkCustomer } from "./customers.service.js";
 import { notifyOrderPaid } from "./notifications.service.js";
 import { priceItems } from "./pricing.service.js";
+import { cotizarEnvio } from "./shipping.service.js";
 import { getStoreSettings } from "./settings.service.js";
 import {
   toOrderResponse,
@@ -178,6 +179,28 @@ export async function createOrder(
 ): Promise<Order> {
   const settings = await getStoreSettings();
 
+  // La cotizacion va ANTES de abrir la transaccion, no adentro: le pregunta a
+  // Correo Argentino por HTTP y puede tardar segundos. Una transaccion abierta
+  // todo ese tiempo retiene una conexion del pool y bloquea las filas de
+  // stock que ya toco, asi que dos compras simultaneas se traban entre si.
+  //
+  // El subtotal se calcula aca sin descontar stock; la transaccion lo vuelve a
+  // calcular igual, que es lo que manda para cobrar.
+  const previo = await priceItems(prisma, input.items, { checkStock: false });
+  const unidades = input.items.reduce((total, i) => total + i.quantity, 0);
+
+  const quote = await cotizarEnvio(
+    {
+      postalCode: input.shippingPostalCode,
+      address: input.shippingAddress,
+      city: input.shippingCity,
+      province: input.shippingCountry,
+      subtotal: previo.subtotal,
+      units: unidades,
+    },
+    settings.shipping
+  );
+
   const order = await prisma.$transaction(async (tx) => {
     const { items, subtotal } = await priceItems(tx, input.items, {
       checkStock: true,
@@ -209,17 +232,11 @@ export async function createOrder(
       }
     }
 
-    const quote = quoteCorreoArgentino(
-      {
-        postalCode: input.shippingPostalCode,
-        address: input.shippingAddress,
-        city: input.shippingCity,
-        province: input.shippingCountry,
-        subtotal,
-      },
-      settings.shipping
-    );
-    const shippingCost = quote.cost;
+    // Si el subtotal cambio entre la cotizacion y esto (un precio editado en
+    // el medio), lo unico que puede cambiar es si cae el envio gratis. Se
+    // reevalua sobre el subtotal que de verdad se va a cobrar.
+    const shippingCost =
+      subtotal >= settings.shipping.freeShippingMinimum ? 0 : quote.cost;
     const totalAmount = subtotal + shippingCost;
     const customer = await upsertCustomerForOrder(tx, input, options.clerkUserId);
     const nextOrderNumber = await buildNextOrderNumber(tx);

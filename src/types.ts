@@ -97,6 +97,15 @@ export type StoreSettings = {
     cabaRate: number;
     gbaRate: number;
     interiorRate: number;
+    patagoniaRate: number;
+    /** Desde que codigo postal se despacha. Sin esto no se cotiza de verdad. */
+    originPostalCode: string;
+    /** Cuanto pesa una pieza, en gramos. */
+    gramsPerItem: number;
+    /** El sobre o la caja, en centimetros. */
+    packageHeight: number;
+    packageWidth: number;
+    packageLength: number;
   };
   promoBanner: {
     enabled: boolean;
